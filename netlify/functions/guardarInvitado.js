@@ -1,4 +1,4 @@
-import { db } from "./firebaseClient.js";
+import { db } from "./shared/firebaseClient.js";
 import { doc, setDoc } from "firebase/firestore";
 
 export async function handler(event) {
