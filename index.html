@@ -1,198 +1,134 @@
-<!DOCTYPE html>
-<html lang="es">
+<script type="module">
+const mesasContainer = document.getElementById("mesasContainer");
+const form = document.getElementById("formInvitado");
+const modalEl = document.getElementById("modalInvitado");
+const modal = new bootstrap.Modal(modalEl);
 
-<head>
-  <meta charset="UTF-8">
-  <title>Gestión de Invitados</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+// 🔹 Helpers de consumo
+async function apiGet() {
+  const res = await fetch("/.netlify/functions/invitados");
+  return res.json();
+}
 
-<body class="bg-light">
-  <div class="container py-5">
-    <h1 class="text-center mb-4">Gestión de Invitados</h1>
+async function apiPost(action, payload) {
+  const res = await fetch("/.netlify/functions/invitados", {
+    method: "POST",
+    body: JSON.stringify({ action, ...payload })
+  });
+  return res.json();
+}
 
-    <!-- Botón para abrir modal -->
-    <div class="text-end mb-3">
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalInvitado">
-        ➕ Agregar Invitado
-      </button>
-    </div>
+// 🔹 Cargar lista agrupada por mesas
+async function cargarInvitados() {
+  mesasContainer.innerHTML = "";
+  const lista = await apiGet();
 
-    <!-- Contenedor de mesas  -->
-    <div id="mesasContainer"></div>
-  </div>
+  const mesas = {};
+  lista.forEach(inv => {
+    const mesa = inv.Mesa || 0;
+    if (!mesas[mesa]) mesas[mesa] = [];
+    mesas[mesa].push(inv);
+  });
 
-  <!-- Modal Bootstrap -->
-  <div class="modal fade" id="modalInvitado" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form id="formInvitado">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalTitle">Agregar Invitado</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-          </div>
-          <div class="modal-body">
-            <input type="hidden" id="Id"> <!-- usado para edición -->
-
-            <div class="mb-3">
-              <label class="form-label">Nombre</label>
-              <input type="text" class="form-control" id="Nombre" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Cantidad</label>
-              <input type="number" class="form-control" id="Cantidad" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Teléfono</label>
-              <input type="number" class="form-control" id="Telefono" required>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Guardar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- Lógica con Netlify Functions -->
-  <script>
-    const mesasContainer = document.getElementById("mesasContainer");
-    const form = document.getElementById("formInvitado");
-    const modalEl = document.getElementById("modalInvitado");
-    const modal = new bootstrap.Modal(modalEl);
-
-    // 🔹 Funciones helper para llamar serverless
-    async function llamarFuncion(nombre, metodo = "GET", data = null) {
-      const options = { method: metodo };
-      if (data) {
-        options.headers = { "Content-Type": "application/json" };
-        options.body = JSON.stringify(data);
-      }
-      const res = await fetch(`/.netlify/functions/${nombre}`, options);
-      return await res.json();
-    }
-
-    async function generarIdInvitado() {
-      const r = await llamarFuncion("generarIdInvitado");
-      return r.id;
-    }
-
-    async function cargarInvitados() {
-      mesasContainer.innerHTML = "";
-      const invitados = await llamarFuncion("cargarInvitados");
-      const mesas = {};
-
-      invitados.forEach(inv => {
-        const mesa = inv.Mesa || 0;
-        if (!mesas[mesa]) mesas[mesa] = [];
-        mesas[mesa].push(inv);
-      });
-
-      Object.keys(mesas).forEach(mesaNum => {
-        const card = document.createElement("div");
-        card.className = "card mb-4";
-
-        let rows = "";
-        mesas[mesaNum].forEach(inv => {
-          rows += `
-            <tr>
-              <td>${inv.id}</td>
-              <td>${inv.Nombre}</td>
-              <td>${inv.Cantidad}</td>
-              <td>
-                <select class="form-select form-select-sm" id="mesa-${inv.id}">
-                  ${[...Array(12).keys()].map(i =>
-              `<option value="${i + 1}" ${inv.Mesa === (i + 1) ? "selected" : ""}>${i + 1}</option>`
-            ).join("")}
-                </select>
-              </td>
-              <td>${inv.Telefono}</td>
-              <td>
-                <button class="btn btn-sm btn-success me-1" onclick="guardarMesa('${inv.id}')">💾</button>
-                <button class="btn btn-sm btn-warning me-1" onclick="editarInvitado('${inv.id}')">✏️</button>
-                <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
-              </td>
-            </tr>
-          `;
-        });
-
-        card.innerHTML = `
-          <div class="card-header">Mesa ${mesaNum}</div>
-          <div class="card-body p-0">
-            <table class="table table-striped table-bordered m-0">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Cantidad</th>
-                  <th>Mesa</th>
-                  <th>Teléfono</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-        `;
-        mesasContainer.appendChild(card);
-      });
-    }
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      let Id = document.getElementById("Id").value;
-
-      if (!Id) {
-        Id = await generarIdInvitado();
-      }
-
-      const data = {
-        Nombre: document.getElementById("Nombre").value,
-        Cantidad: parseInt(document.getElementById("Cantidad").value),
-        Telefono: parseInt(document.getElementById("Telefono").value),
-        Mesa: 1
-      };
-
-      await llamarFuncion("guardarInvitado", "POST", { id: Id, data });
-      form.reset();
-      document.getElementById("Id").value = "";
-      modal.hide();
-      cargarInvitados();
+  Object.keys(mesas).forEach(mesaNum => {
+    const card = document.createElement("div");
+    card.className = "card mb-4";
+    let rows = "";
+    mesas[mesaNum].forEach(inv => {
+      rows += `
+        <tr>
+          <td>${inv.id}</td>
+          <td>${inv.Nombre}</td>
+          <td>${inv.Cantidad}</td>
+          <td>
+            <select class="form-select form-select-sm" id="mesa-${inv.id}">
+              ${[...Array(12).keys()].map(i =>
+                `<option value="${i + 1}" ${inv.Mesa === (i + 1) ? "selected" : ""}>${i + 1}</option>`
+              ).join("")}
+            </select>
+          </td>
+          <td>${inv.Telefono}</td>
+          <td>
+            <button class="btn btn-sm btn-success me-1" onclick="guardarMesa('${inv.id}')">💾</button>
+            <button class="btn btn-sm btn-warning me-1" onclick="editarInvitado('${inv.id}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
+          </td>
+        </tr>
+      `;
     });
 
-    window.editarInvitado = async (id) => {
-      const data = await llamarFuncion("editarInvitado", "POST", { id });
-      document.getElementById("Id").value = id;
-      document.getElementById("Nombre").value = data.Nombre;
-      document.getElementById("Cantidad").value = data.Cantidad;
-      document.getElementById("Telefono").value = data.Telefono;
-      document.getElementById("modalTitle").textContent = "Editar Invitado";
-      modal.show();
-    };
+    card.innerHTML = `
+      <div class="card-header">Mesa ${mesaNum}</div>
+      <div class="card-body p-0">
+        <table class="table table-striped table-bordered m-0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Cantidad</th>
+              <th>Mesa</th>
+              <th>Teléfono</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+    mesasContainer.appendChild(card);
+  });
+}
 
-    window.eliminarInvitado = async (id) => {
-      if (confirm("¿Seguro que deseas eliminar este invitado?")) {
-        await llamarFuncion("eliminarInvitado", "POST", { id });
-        cargarInvitados();
-      }
-    };
+// 🔹 Guardar o actualizar
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  let Id = document.getElementById("Id").value;
 
-    window.guardarMesa = async (id) => {
-      const select = document.getElementById(`mesa-${id}`);
-      const nuevaMesa = parseInt(select.value);
-      await llamarFuncion("guardarMesa", "POST", { id, mesa: nuevaMesa });
-      alert("Mesa actualizada ✅");
-      cargarInvitados();
-    };
+  const data = {
+    Id,
+    Nombre: document.getElementById("Nombre").value,
+    Cantidad: parseInt(document.getElementById("Cantidad").value),
+    Telefono: parseInt(document.getElementById("Telefono").value),
+    Mesa: 1
+  };
 
-    // Inicial
+  await apiPost("guardar", { data });
+  form.reset();
+  document.getElementById("Id").value = "";
+  modal.hide();
+  cargarInvitados();
+});
+
+// 🔹 Editar
+window.editarInvitado = async (id) => {
+  const res = await apiPost("obtener", { id });
+  if (res) {
+    document.getElementById("Id").value = res.id;
+    document.getElementById("Nombre").value = res.Nombre;
+    document.getElementById("Cantidad").value = res.Cantidad;
+    document.getElementById("Telefono").value = res.Telefono;
+    document.getElementById("modalTitle").textContent = "Editar Invitado";
+    modal.show();
+  }
+};
+
+// 🔹 Eliminar
+window.eliminarInvitado = async (id) => {
+  if (confirm("¿Seguro que deseas eliminar este invitado?")) {
+    await apiPost("eliminar", { id });
     cargarInvitados();
-  </script>
-</body>
+  }
+};
 
-</html>
+// 🔹 Guardar cambio de mesa
+window.guardarMesa = async (id) => {
+  const select = document.getElementById(`mesa-${id}`);
+  const nuevaMesa = parseInt(select.value);
+  await apiPost("mesa", { id, mesa: nuevaMesa });
+  alert("Mesa actualizada ✅");
+  cargarInvitados();
+};
+
+// Inicial
+cargarInvitados();
+</script>

@@ -1,12 +1,17 @@
 {
   "name": "gestion-invitados",
   "version": "1.0.0",
+  "description": "Gestión de invitados con Netlify Functions + Firebase",
+  "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "netlify dev",
-    "build": "echo 'No build step necesario'"
+    "build": "echo 'No build step'"
   },
   "dependencies": {
-    "firebase": "^10.12.5"
+    "firebase": "^10.13.1" 
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.36.1"
   }
 }
