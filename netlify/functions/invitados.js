@@ -1,5 +1,13 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, doc, setDoc, getDoc, deleteDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc,
+  getDoc
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC6Di7CyehlsNI08PGpBHU75VJhVMWxEJs",
@@ -14,40 +22,36 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-export default async function handler(req, res) {
+export async function handler(event) {
   try {
-    const body = JSON.parse(req.body);
-    const { accion } = body;
+    const body = event.body ? JSON.parse(event.body) : {};
+    const { accion, id, data, Id } = body;
 
     if (accion === "listar") {
       const snap = await getDocs(collection(db, "Invitados"));
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return res.status(200).json(data);
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      return { statusCode: 200, body: JSON.stringify(lista) };
     }
 
     if (accion === "guardar") {
-      let id = body.data.Id || body.Id;
-      if (!id) {
-        id = Date.now().toString(); // simple id único
-      }
-      delete body.data.Id;
-      await setDoc(doc(db, "Invitados", id), body.data, { merge: true });
-      return res.status(200).json({ ok: true, id });
+      let docId = Id || id || Date.now().toString();
+      await setDoc(doc(db, "Invitados", docId), data, { merge: true });
+      return { statusCode: 200, body: JSON.stringify({ ok: true, id: docId }) };
     }
 
     if (accion === "obtener") {
-      const snap = await getDoc(doc(db, "Invitados", body.id));
-      return res.status(200).json(snap.exists() ? snap.data() : {});
+      const snap = await getDoc(doc(db, "Invitados", id));
+      return { statusCode: 200, body: JSON.stringify(snap.exists() ? { id: snap.id, ...snap.data() } : null) };
     }
 
     if (accion === "eliminar") {
-      await deleteDoc(doc(db, "Invitados", body.id));
-      return res.status(200).json({ ok: true });
+      await deleteDoc(doc(db, "Invitados", id));
+      return { statusCode: 200, body: JSON.stringify({ ok: true }) };
     }
 
-    return res.status(400).json({ error: "Acción no válida" });
+    return { statusCode: 400, body: JSON.stringify({ error: "Acción inválida" }) };
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Error en servidor" });
+    console.error("Error en function:", err);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 }
