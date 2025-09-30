@@ -1,8 +1,7 @@
 {
   "name": "gestion-invitados",
   "version": "1.0.0",
-  "description": "Proyecto de gestión de invitados con Netlify Functions + Firebase",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "netlify dev",
     "build": "echo 'No build step necesario'"
