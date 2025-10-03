@@ -121,11 +121,21 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   var ConDetalle = document.getElementById("ConDetalle").checked;
 
-  const Id = document.getElementById("Id").value;
+
+const inputId = document.getElementById("Id");
+let Id = (inputId.value || "").trim();
+
+if (!Id) {
+  Id = generarId(lista);     // lista puede ser array de strings o de objetos con .id
+  inputId.value = Id;
+}
+
+console.log(Id);
+
   const data = {
     Nombre: document.getElementById("Nombre").value,
     Telefono: parseInt(document.getElementById("Telefono").value),
-    Mesa: lista.find(x => x.id === Id).Mesa,
+    Mesa: lista.find(x => x.id === Id)?.Mesa??"SIN ASIGNAR",
     Detalle: ConDetalle ? lista.find(x => x.id === Id).Detalle : []
   };
 
@@ -255,4 +265,67 @@ function showSuccessToast(mensaje) {
     }
   }).showToast();
 
+}
+
+function generarId(lista) {
+  const prefijo = "INV";
+
+  // Extrae números usados (1..100) protegiendo distintos formatos de entrada
+  const usados = new Set();
+  const existingIds = new Set();
+
+  if (Array.isArray(lista)) {
+    for (const item of lista) {
+      let str = null;
+
+      if (typeof item === "string") {
+        str = item;
+      } else if (item && typeof item === "object") {
+        // intenta coger propiedades comunes que pueden contener el id
+        str = item.id ?? item.Id ?? item.ID ?? null;
+      }
+
+      if (typeof str === "string") {
+        existingIds.add(str);
+
+        // Buscar 1-3 dígitos al final (por si no tiene exactamente 3)
+        const m = str.match(/-(\d{1,3})$/);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (!Number.isNaN(n) && n >= 1 && n <= 100) usados.add(n);
+        }
+      }
+    }
+  }
+
+  // Buscar primer hueco disponible del 1 al 100
+  let numero = null;
+  for (let i = 1; i <= 100; i++) {
+    if (!usados.has(i)) {
+      numero = i;
+      break;
+    }
+  }
+  if (numero === null) {
+    throw new Error("Se alcanzó el máximo de 100 IDs");
+  }
+
+  const numeroStr = String(numero).padStart(3, "0");
+
+  // Generar letras aleatorias y asegurar unicidad completa del ID
+  const randLetters = () =>
+    Array.from({ length: 3 }, () =>
+      String.fromCharCode(65 + Math.floor(Math.random() * 26))
+    ).join("");
+
+  let intento = 0;
+  let letras, candidato;
+  do {
+    letras = randLetters();
+    candidato = `${prefijo}-${letras}-${numeroStr}`;
+    intento++;
+    if (intento > 1000) throw new Error("No se pudo generar un ID único (demasiados intentos)");
+  } while (existingIds.has(candidato));
+
+  return candidato;
 }
