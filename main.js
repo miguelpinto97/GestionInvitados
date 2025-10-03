@@ -120,6 +120,7 @@ async function cargarInvitados() {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   var ConDetalle = document.getElementById("ConDetalle").checked;
+  var MostrarSellamiento = document.getElementById("MostrarSellamiento").checked;
 
 
 const inputId = document.getElementById("Id");
@@ -136,7 +137,8 @@ console.log(Id);
     Nombre: document.getElementById("Nombre").value,
     Telefono: parseInt(document.getElementById("Telefono").value),
     Mesa: lista.find(x => x.id === Id)?.Mesa??"SIN ASIGNAR",
-    Detalle: ConDetalle ? lista.find(x => x.id === Id).Detalle : []
+    Detalle: ConDetalle ? lista.find(x => x.id === Id).Detalle : [],
+    MostrarSellamiento: MostrarSellamiento
   };
 
   await apiPost({ accion: "guardar", Id, data });
@@ -162,7 +164,8 @@ console.log(res.Detalle?.length??0)
     document.getElementById("Nombre").value = res.Nombre;
     document.getElementById("Telefono").value = res.Telefono;
     document.getElementById("modalTitle").textContent = "Editar Invitado";
-document.getElementById("ConDetalle").checked = (res.Detalle?.length ?? 0) > 1;
+    document.getElementById("ConDetalle").checked = (res.Detalle?.length ?? 0) > 1;
+    document.getElementById("MostrarSellamiento").checked = res.MostrarSellamiento;
     modalInvitado.show();
   }
 };
