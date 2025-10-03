@@ -121,7 +121,7 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   var ConDetalle = document.getElementById("ConDetalle").checked;
   var MostrarSellamiento = document.getElementById("MostrarSellamiento").checked;
-
+  var OcultarTransporte = document.getElementById("OcultarTransporte").checked;
 
 const inputId = document.getElementById("Id");
 let Id = (inputId.value || "").trim();
@@ -138,7 +138,8 @@ console.log(Id);
     Telefono: parseInt(document.getElementById("Telefono").value),
     Mesa: lista.find(x => x.id === Id)?.Mesa??"SIN ASIGNAR",
     Detalle: ConDetalle ? lista.find(x => x.id === Id).Detalle : [],
-    MostrarSellamiento: MostrarSellamiento
+    MostrarSellamiento: MostrarSellamiento,
+    OcultarTransporte: OcultarTransporte
   };
 
   await apiPost({ accion: "guardar", Id, data });
@@ -166,6 +167,7 @@ console.log(res.Detalle?.length??0)
     document.getElementById("modalTitle").textContent = "Editar Invitado";
     document.getElementById("ConDetalle").checked = (res.Detalle?.length ?? 0) > 1;
     document.getElementById("MostrarSellamiento").checked = res.MostrarSellamiento;
+    document.getElementById("OcultarTransporte").checked = res.OcultarTransporte;
     modalInvitado.show();
   }
 };
