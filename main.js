@@ -176,11 +176,11 @@ window.verDetalle = async (id) => {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${d.Integrante}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="quitarIntegrante(${idx})">Quitar</button></td>
       <td>${d.Civil ? "✔" : "✖"}</td>
       <td>${d.Sellamiento ? "✔" : "✖"}</td>
       <td>${d.Recepcion ? "✔" : "✖"}</td>
       <td>${d.BusGrupal ? "✔" : "✖"}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="quitarIntegrante(${idx})">Quitar</button></td>
     `;
     tbody.appendChild(row);
   });
