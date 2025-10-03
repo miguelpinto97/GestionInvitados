@@ -196,7 +196,8 @@ window.agregarIntegrante = async () => {
   detalle.push({ Integrante: nombre, Civil: false, Sellamiento: false, Recepcion: false, BusGrupal: false });
   await apiPost({ accion: "guardar", Id: invitadoDetalleActual, data: { Detalle: detalle } });
   showSuccessToast("Realizado Correctamente");
-  verDetalle(invitadoDetalleActual);
+     cargarInvitados();
+ verDetalle(invitadoDetalleActual);
 };
 
 // Quitar integrante
@@ -206,6 +207,7 @@ window.quitarIntegrante = async (idx) => {
   detalle.splice(idx, 1);
   await apiPost({ accion: "guardar", Id: invitadoDetalleActual, data: { Detalle: detalle } });
   showSuccessToast("Realizado Correctamente");
+    cargarInvitados();
   verDetalle(invitadoDetalleActual);
 };
 
