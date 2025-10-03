@@ -109,7 +109,6 @@ form.addEventListener("submit", async (e) => {
   const data = {
     Nombre: document.getElementById("Nombre").value,
     Telefono: parseInt(document.getElementById("Telefono").value),
-    Vehiculo: document.getElementById("Vehiculo").checked,
     Mesa: lista.find(x => x.id === Id).Mesa
   };
 
@@ -127,7 +126,6 @@ window.editarInvitado = async (id) => {
     document.getElementById("Id").value = res.id;
     document.getElementById("Nombre").value = res.Nombre;
     document.getElementById("Telefono").value = res.Telefono;
-    document.getElementById("Vehiculo").checked = !!res.Vehiculo;
     document.getElementById("modalTitle").textContent = "Editar Invitado";
     modalInvitado.show();
   }
