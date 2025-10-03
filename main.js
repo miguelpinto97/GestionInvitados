@@ -1,3 +1,4 @@
+
 const modalInvitado = new bootstrap.Modal(document.getElementById("modalInvitado"));
 const modalDetalle = new bootstrap.Modal(document.getElementById("modalDetalle"));
 const form = document.getElementById("formInvitado");
@@ -38,55 +39,68 @@ async function cargarInvitados() {
 
     const bloque = document.createElement("div");
     bloque.className = "card mb-4";
-    bloque.innerHTML = `<div class="card-header">Mesa ${mesa}</div>`;
+
+    // Header
+    const header = document.createElement("div");
+    header.className = "card-header";
+    header.textContent = `Mesa ${mesa}`;
+    bloque.appendChild(header);
+
+    // Contenedor responsive
+    const responsive = document.createElement("div");
+    responsive.className = "table-responsive";
+
+    // Tabla
     const tabla = document.createElement("table");
     tabla.classList.add("table", "table-striped", "m-0");
     tabla.innerHTML = `
-      <thead>
-        <tr>
-          <th></th>
-          <th>Id</th>
-          <th>Nombre</th>
-          <th>Cantidad</th>
-          <th>Mesa</th>
-          <th>Vehículo</th>
-          <th>Teléfono</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${invitadosMesa.map(inv => `
-          <tr>
-            <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="copiarEnlace('${inv.id}')">
-                Link
-            </button>
-            </td>
-            <td>${inv.id}</td>
-            <td>${inv.Nombre}</td>
-            <td>${inv.Detalle?.length ?? 0}</td>
-            <td>
-<select data-id="${inv.id}" class="mesa-select form-select form-select-sm">
-  ${Array.from({ length: 12 }, (_, i) => i + 1).map(opt => `
-    <option value="${opt}" ${Number(inv.Mesa) === opt ? "selected" : ""}>${opt}</option>
-  `).join("")}
-  <option value="Sin asignar" ${!inv.Mesa ? "selected" : ""}>Sin asignar</option>
-</select>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Id</th>
+      <th>Acciones</th>
+      <th>Nombre</th>
+      <th>Cantidad</th>
+      <th>Mesa</th>
+      <th>Vehículo</th>
+      <th>Teléfono</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${invitadosMesa.map(inv => `
+      <tr>
+        <td>
+          <button class="btn btn-sm btn-outline-primary" onclick="copiarEnlace('${inv.id}')">
+            Link
+          </button>
+        </td>
+        <td>${inv.id}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="editarInvitado('${inv.id}')">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
+          <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥 Detalle</button>
+        </td>
+        <td>${inv.Nombre}</td>
+        <td>${inv.Detalle?.length ?? 0}</td>
+        <td>
+          <select data-id="${inv.id}" class="mesa-select form-select form-select-sm">
+            ${Array.from({ length: 12 }, (_, i) => i + 1).map(opt => `
+              <option value="${opt}" ${Number(inv.Mesa) === opt ? "selected" : ""}>${opt}</option>
+            `).join("")}
+            <option value="Sin asignar" ${!inv.Mesa ? "selected" : ""}>Sin asignar</option>
+          </select>
+        </td>
+        <td>${inv.Vehiculo ? "Sí" : "No"}</td>
+        <td>${inv.Telefono || ""}</td>
+      </tr>
+    `).join("")}
+  </tbody>
+`;
 
-            </td>
-            <td>${inv.Vehiculo ? "Sí" : "No"}</td>
-            <td>${inv.Telefono || ""}</td>
-            <td>
-              <button class="btn btn-sm btn-warning" onclick="editarInvitado('${inv.id}')">✏️</button>
-              <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
-              <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥 Detalle</button>
-              <button class="btn btn-sm btn-info" onclick="generarSinDetalle('${inv.id}')">Sin Detalle</button>
-            </td>
-          </tr>
-        `).join("")}
-      </tbody>
-    `;
-    bloque.appendChild(tabla);
+    // Armar estructura
+    responsive.appendChild(tabla);
+    bloque.appendChild(responsive);
+
     cont.appendChild(bloque);
   });
 
@@ -105,28 +119,40 @@ async function cargarInvitados() {
 // Guardar invitado
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+  var ConDetalle = document.getElementById("ConDetalle").checked;
+
   const Id = document.getElementById("Id").value;
   const data = {
     Nombre: document.getElementById("Nombre").value,
     Telefono: parseInt(document.getElementById("Telefono").value),
-    Mesa: lista.find(x => x.id === Id).Mesa
+    Mesa: lista.find(x => x.id === Id).Mesa,
+    Detalle: ConDetalle ? lista.find(x => x.id === Id).Detalle : []
   };
 
   await apiPost({ accion: "guardar", Id, data });
   form.reset();
   modalInvitado.hide();
   showSuccessToast("Realizado Correctamente");
+
+console.log(ConDetalle)
+  if (!ConDetalle) {
+    generarSinDetalle(Id);
+  }
+
   cargarInvitados();
 });
 
 // Editar invitado
 window.editarInvitado = async (id) => {
   const res = await apiPost({ accion: "obtener", id });
+console.log("Detalle:")
+console.log(res.Detalle?.length??0)
   if (res) {
     document.getElementById("Id").value = res.id;
     document.getElementById("Nombre").value = res.Nombre;
     document.getElementById("Telefono").value = res.Telefono;
     document.getElementById("modalTitle").textContent = "Editar Invitado";
+document.getElementById("ConDetalle").checked = (res.Detalle?.length ?? 0) > 1;
     modalInvitado.show();
   }
 };
@@ -189,15 +215,15 @@ window.generarSinDetalle = async (idx) => {
   const res = await apiPost({ accion: "obtener", id: idx });
   const detalle = res.Detalle || [];
 
-  if (detalle?.length??0 >= 1) {
+  if (detalle?.length ?? 0 >= 1) {
     showSuccessToast("Esta invitación ya cuenta con detalle.");
   } else {
     detalle.push({ Integrante: nombre, Civil: false, Sellamiento: false, Recepcion: false, BusGrupal: false });
     console.log(detalle);
     await apiPost({ accion: "guardar", Id: idx, data: { Detalle: detalle } });
     showSuccessToast("Realizado Correctamente");
-     cargarInvitados();
- }
+    cargarInvitados();
+  }
 
 };
 
