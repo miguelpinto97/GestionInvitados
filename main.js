@@ -45,6 +45,7 @@ async function cargarInvitados() {
       <thead>
         <tr>
           <th></th>
+          <th>Id</th>
           <th>Nombre</th>
           <th>Cantidad</th>
           <th>Mesa</th>
@@ -61,6 +62,7 @@ async function cargarInvitados() {
                 Link
             </button>
             </td>
+            <td>${inv.id}</td>
             <td>${inv.Nombre}</td>
             <td>${inv.Cantidad}</td>
             <td>
@@ -184,8 +186,23 @@ cargarInvitados();
 window.copiarEnlace = function (id) {
   const url = `https://camila-y-miguel.netlify.app/?Id=${id}`;
   navigator.clipboard.writeText(url).then(() => {
-    alert("Enlace copiado: " + url);
+    showSuccessToast("Enlace copiado: " + url);
   }).catch(err => {
-    console.error("Error al copiar: ", err);
+    showSuccessToast("Error al copiar: ", err);
   });
 };
+
+
+function showSuccessToast(mensaje) {
+    Toastify({
+        text: mensaje,
+        duration: 1500,
+        gravity: "bottom",
+        position: "center",
+        style: {
+            fontSize: "12px",        // más pequeño
+            padding: "4px 10px"      // menos alto/ancho
+        }
+    }).showToast();
+    
+}
