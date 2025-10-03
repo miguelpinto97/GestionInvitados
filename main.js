@@ -17,7 +17,6 @@ async function apiPost(payload) {
 // Cargar invitados agrupados
 async function cargarInvitados() {
   lista = await apiPost({ accion: "listar" });
-  console.log(lista);
   const grupos = {};
   lista.forEach(inv => {
     const mesa = inv.Mesa || "Sin asignar";
@@ -65,7 +64,7 @@ async function cargarInvitados() {
             </td>
             <td>${inv.id}</td>
             <td>${inv.Nombre}</td>
-            <td>${inv.Cantidad}</td>
+            <td>${inv.Detalle?.length ?? 0}</td>
             <td>
 <select data-id="${inv.id}" class="mesa-select form-select form-select-sm">
   ${Array.from({ length: 12 }, (_, i) => i + 1).map(opt => `
@@ -81,6 +80,7 @@ async function cargarInvitados() {
               <button class="btn btn-sm btn-warning" onclick="editarInvitado('${inv.id}')">✏️</button>
               <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
               <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥 Detalle</button>
+              <button class="btn btn-sm btn-info" onclick="generarSinDetalle('${inv.id}')">Sin Detalle</button>
             </td>
           </tr>
         `).join("")}
@@ -97,6 +97,7 @@ async function cargarInvitados() {
       const nuevaMesa = e.target.value;
       await apiPost({ accion: "guardar", Id: id, data: { Mesa: nuevaMesa } });
       cargarInvitados();
+      showSuccessToast("Realizado Correctamente");
     });
   });
 }
@@ -107,7 +108,6 @@ form.addEventListener("submit", async (e) => {
   const Id = document.getElementById("Id").value;
   const data = {
     Nombre: document.getElementById("Nombre").value,
-    Cantidad: parseInt(document.getElementById("Cantidad").value),
     Telefono: parseInt(document.getElementById("Telefono").value),
     Vehiculo: document.getElementById("Vehiculo").checked,
     Mesa: lista.find(x => x.id === Id).Mesa
@@ -116,6 +116,7 @@ form.addEventListener("submit", async (e) => {
   await apiPost({ accion: "guardar", Id, data });
   form.reset();
   modalInvitado.hide();
+  showSuccessToast("Realizado Correctamente");
   cargarInvitados();
 });
 
@@ -125,7 +126,6 @@ window.editarInvitado = async (id) => {
   if (res) {
     document.getElementById("Id").value = res.id;
     document.getElementById("Nombre").value = res.Nombre;
-    document.getElementById("Cantidad").value = res.Cantidad;
     document.getElementById("Telefono").value = res.Telefono;
     document.getElementById("Vehiculo").checked = !!res.Vehiculo;
     document.getElementById("modalTitle").textContent = "Editar Invitado";
@@ -138,6 +138,7 @@ window.eliminarInvitado = async (id) => {
   if (confirm("¿Eliminar invitado?")) {
     await apiPost({ accion: "eliminar", id });
     cargarInvitados();
+    showSuccessToast("Realizado Correctamente");
   }
 };
 
@@ -170,6 +171,7 @@ window.agregarIntegrante = async () => {
   const detalle = res.Detalle || [];
   detalle.push({ Integrante: nombre, Civil: false, Sellamiento: false, Recepcion: false, BusGrupal: false });
   await apiPost({ accion: "guardar", Id: invitadoDetalleActual, data: { Detalle: detalle } });
+  showSuccessToast("Realizado Correctamente");
   verDetalle(invitadoDetalleActual);
 };
 
@@ -179,8 +181,28 @@ window.quitarIntegrante = async (idx) => {
   const detalle = res.Detalle || [];
   detalle.splice(idx, 1);
   await apiPost({ accion: "guardar", Id: invitadoDetalleActual, data: { Detalle: detalle } });
+  showSuccessToast("Realizado Correctamente");
   verDetalle(invitadoDetalleActual);
 };
+
+window.generarSinDetalle = async (idx) => {
+  const nombre = "UNICO";
+  if (!nombre) return;
+  const res = await apiPost({ accion: "obtener", id: idx });
+  const detalle = res.Detalle || [];
+
+  if (detalle?.length??0 >= 1) {
+    showSuccessToast("Esta invitación ya cuenta con detalle.");
+  } else {
+    detalle.push({ Integrante: nombre, Civil: false, Sellamiento: false, Recepcion: false, BusGrupal: false });
+    console.log(detalle);
+    await apiPost({ accion: "guardar", Id: idx, data: { Detalle: detalle } });
+    showSuccessToast("Realizado Correctamente");
+     cargarInvitados();
+ }
+
+};
+
 
 // Inicial
 cargarInvitados();
