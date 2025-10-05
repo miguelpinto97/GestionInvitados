@@ -334,3 +334,4 @@ function generarId(lista) {
 
   return candidato;
 }
+
