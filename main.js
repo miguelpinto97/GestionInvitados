@@ -29,11 +29,9 @@ async function cargarInvitados() {
   cont.innerHTML = "";
 
   Object.keys(grupos).sort((a, b) => {
-    if (a === "Sin asignar") return 1;
-    if (b === "Sin asignar") return -1;
-    const numA = parseInt(a.replace("Mesa ", "")) || 0;
-    const numB = parseInt(b.replace("Mesa ", "")) || 0;
-    return numA - numB;
+    if (a === "Sin asignar") return 1;   // "Sin asignar" va al final
+    if (b === "Sin asignar") return -1;  // "Sin asignar" va al final
+    return parseInt(a) - parseInt(b);    // orden numérico normal
   }).forEach(mesa => {
     const invitadosMesa = grupos[mesa];
 
@@ -84,10 +82,10 @@ async function cargarInvitados() {
         <td>${inv.Detalle?.length ?? 0}</td>
         <td>
           <select data-id="${inv.id}" class="mesa-select form-select form-select-sm">
-            ${Array.from({ length: 12 }, (_, i) => i + 1).map(opt => `
+             <option value="Sin asignar" >Sin asignar</option>
+           ${Array.from({ length: 15 }, (_, i) => i).map(opt => `
               <option value="${opt}" ${Number(inv.Mesa) === opt ? "selected" : ""}>${opt}</option>
             `).join("")}
-            <option value="Sin asignar" ${!inv.Mesa ? "selected" : ""}>Sin asignar</option>
           </select>
         </td>
         <td>${inv.Vehiculo ? "Sí" : "No"}</td>
@@ -123,31 +121,33 @@ form.addEventListener("submit", async (e) => {
   var MostrarSellamiento = document.getElementById("MostrarSellamiento").checked;
   var OcultarTransporte = document.getElementById("OcultarTransporte").checked;
 
-const inputId = document.getElementById("Id");
-let Id = (inputId.value || "").trim();
+  const inputId = document.getElementById("Id");
+  let Id = (inputId.value || "").trim();
+  console.log(inputId);
 
-if (!Id) {
-  Id = generarId(lista);     // lista puede ser array de strings o de objetos con .id
-  inputId.value = Id;
-}
+  if (!Id) {
+    Id = generarId(lista);     // lista puede ser array de strings o de objetos con .id
+    inputId.value = Id;
+  }
 
-console.log(Id);
+  console.log(Id);
 
   const data = {
     Nombre: document.getElementById("Nombre").value,
     Telefono: parseInt(document.getElementById("Telefono").value),
-    Mesa: lista.find(x => x.id === Id)?.Mesa??"SIN ASIGNAR",
-    Detalle: ConDetalle ? lista.find(x => x.id === Id).Detalle : [],
+    Mesa: lista.find(x => x.id === Id)?.Mesa ?? "0",
+    Detalle: ConDetalle ? (lista.find(x => x.id === Id)?.Detalle ?? []) : [],
     MostrarSellamiento: MostrarSellamiento,
     OcultarTransporte: OcultarTransporte
   };
 
   await apiPost({ accion: "guardar", Id, data });
   form.reset();
+  document.getElementById("Id").value = "";
   modalInvitado.hide();
   showSuccessToast("Realizado Correctamente");
 
-console.log(ConDetalle)
+  console.log(ConDetalle)
   if (!ConDetalle) {
     generarSinDetalle(Id);
   }
@@ -155,11 +155,19 @@ console.log(ConDetalle)
   cargarInvitados();
 });
 
+
+window.abrirNuevoInvitado = () => {
+  document.getElementById("modalTitle").textContent = "Agregar Invitado";
+  form.reset();
+  document.getElementById("Id").value="";
+  modalInvitado.show();
+}
+
 // Editar invitado
 window.editarInvitado = async (id) => {
   const res = await apiPost({ accion: "obtener", id });
-console.log("Detalle:")
-console.log(res.Detalle?.length??0)
+  console.log("Detalle:")
+  console.log(res.Detalle?.length ?? 0)
   if (res) {
     document.getElementById("Id").value = res.id;
     document.getElementById("Nombre").value = res.Nombre;
@@ -211,8 +219,8 @@ window.agregarIntegrante = async () => {
   detalle.push({ Integrante: nombre, Civil: false, Sellamiento: false, Recepcion: false, BusGrupal: false });
   await apiPost({ accion: "guardar", Id: invitadoDetalleActual, data: { Detalle: detalle } });
   showSuccessToast("Realizado Correctamente");
-     cargarInvitados();
- verDetalle(invitadoDetalleActual);
+  cargarInvitados();
+  verDetalle(invitadoDetalleActual);
 };
 
 // Quitar integrante
@@ -222,7 +230,7 @@ window.quitarIntegrante = async (idx) => {
   detalle.splice(idx, 1);
   await apiPost({ accion: "guardar", Id: invitadoDetalleActual, data: { Detalle: detalle } });
   showSuccessToast("Realizado Correctamente");
-    cargarInvitados();
+  cargarInvitados();
   verDetalle(invitadoDetalleActual);
 };
 
@@ -308,6 +316,10 @@ function generarId(lista) {
   for (let i = 1; i <= 100; i++) {
     if (!usados.has(i)) {
       numero = i;
+      console.log("Usados:")
+      console.log(usados)
+      console.log("Generado:")
+      console.log(numero)
       break;
     }
   }
