@@ -24,6 +24,9 @@ function contarConfirmaciones(detalle) {
 // Cargar todos los invitados con su detalle
 async function cargarConfirmaciones() {
   const lista = await apiPost({ accion: "listar" });
+
+
+
   const cont = document.getElementById("contenedor-confirmaciones");
   cont.innerHTML = "";
 
@@ -38,14 +41,17 @@ async function cargarConfirmaciones() {
         Sellamiento: d.Sellamiento,
         Recepcion: d.Recepcion,
         BusGrupal: d.BusGrupal,
+        Mesa : inv.Mesa,
         Confirmaciones: contarConfirmaciones(d)
       });
     });
   });
 
   // Ordenar: primero los que tienen más confirmaciones
-  items.sort((a, b) => b.Confirmaciones - a.Confirmaciones);
-
+//  items.sort((a, b) => b.Confirmaciones - a.Confirmaciones);
+items.sort((a, b) =>
+  a.Mesa.toString().localeCompare(b.Mesa.toString(), "es", { numeric: true })
+);
   // 🔹 Calcular totales por columna
   const totales = {
     Civil: items.filter(i => i.Civil).length,
