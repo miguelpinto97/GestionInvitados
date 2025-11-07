@@ -58,10 +58,11 @@ async function cargarInvitados() {
       <th>Id</th>
       <th>Acciones</th>
       <th>Nombre</th>
-      <th>Cantidad</th>
+      <th>Cant.</th>
       <th>Mesa</th>
       <th>Vehículo</th>
       <th>Teléfono</th>
+      <th>F. Límite</th>
     </tr>
   </thead>
   <tbody>
@@ -90,6 +91,7 @@ async function cargarInvitados() {
         </td>
         <td>${inv.Vehiculo ? "Sí" : "No"}</td>
         <td>${inv.Telefono || ""}</td>
+        <td>${inv.FechaLimite || "11 de Octubre"}</td>
       </tr>
     `).join("")}
   </tbody>
@@ -136,6 +138,7 @@ form.addEventListener("submit", async (e) => {
   const data = {
     Nombre: document.getElementById("Nombre").value,
     Telefono: parseInt(document.getElementById("Telefono").value),
+    FechaLimite: document.getElementById("FechaLimite").value,
     Mesa: lista.find(x => x.id === Id)?.Mesa ?? "0",
     Detalle: ConDetalle ? (lista.find(x => x.id === Id)?.Detalle ?? []) : [],
     MostrarSellamiento: MostrarSellamiento,
@@ -174,6 +177,7 @@ window.editarInvitado = async (id) => {
     document.getElementById("Id").value = res.id;
     document.getElementById("Nombre").value = res.Nombre;
     document.getElementById("Telefono").value = res.Telefono;
+    document.getElementById("FechaLimite").value = res.FechaLimite || "11 de Octubre" ;
     document.getElementById("modalTitle").textContent = "Editar Invitado";
     document.getElementById("ConDetalle").checked = (res.Detalle?.length ?? 0) > 1;
     document.getElementById("MostrarSellamiento").checked = res.MostrarSellamiento;
