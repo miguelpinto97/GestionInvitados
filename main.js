@@ -119,6 +119,7 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   var ConDetalle = document.getElementById("ConDetalle").checked;
   var MostrarSellamiento = document.getElementById("MostrarSellamiento").checked;
+  var OcultarRecepcion = document.getElementById("OcultarRecepcion").checked;
   var OcultarTransporte = document.getElementById("OcultarTransporte").checked;
 
   const inputId = document.getElementById("Id");
@@ -138,6 +139,7 @@ form.addEventListener("submit", async (e) => {
     Mesa: lista.find(x => x.id === Id)?.Mesa ?? "0",
     Detalle: ConDetalle ? (lista.find(x => x.id === Id)?.Detalle ?? []) : [],
     MostrarSellamiento: MostrarSellamiento,
+    OcultarRecepcion:OcultarRecepcion,
     OcultarTransporte: OcultarTransporte
   };
 
@@ -159,7 +161,7 @@ form.addEventListener("submit", async (e) => {
 window.abrirNuevoInvitado = () => {
   document.getElementById("modalTitle").textContent = "Agregar Invitado";
   form.reset();
-  document.getElementById("Id").value="";
+  document.getElementById("Id").value = "";
   modalInvitado.show();
 }
 
@@ -175,6 +177,7 @@ window.editarInvitado = async (id) => {
     document.getElementById("modalTitle").textContent = "Editar Invitado";
     document.getElementById("ConDetalle").checked = (res.Detalle?.length ?? 0) > 1;
     document.getElementById("MostrarSellamiento").checked = res.MostrarSellamiento;
+    document.getElementById("OcultarRecepcion").checked = res.OcultarRecepcion;
     document.getElementById("OcultarTransporte").checked = res.OcultarTransporte;
     modalInvitado.show();
   }
