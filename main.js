@@ -312,7 +312,7 @@ function generarId(lista) {
         const m = str.match(/-(\d{1,3})$/);
         if (m) {
           const n = parseInt(m[1], 10);
-          if (!Number.isNaN(n) && n >= 1 && n <= 100) usados.add(n);
+          if (!Number.isNaN(n) && n >= 1 && n <= 110) usados.add(n);
         }
       }
     }
@@ -320,7 +320,7 @@ function generarId(lista) {
 
   // Buscar primer hueco disponible del 1 al 100
   let numero = null;
-  for (let i = 1; i <= 100; i++) {
+  for (let i = 1; i <= 110; i++) {
     if (!usados.has(i)) {
       numero = i;
       console.log("Usados:")
