@@ -204,12 +204,13 @@ window.verDetalle = async (id) => {
   tbody.innerHTML = "";
 
   // Ocultar columna Sellamiento (th y td)
-  const ocultarSellamiento = !res.MostrarSellamiento;
+const ocultarSellamiento = res.MostrarSellamiento !== true;
 
-  if (ocultarSellamiento) {
-    const thSellamiento = document.getElementById("thSellamiento");
-    if (thSellamiento) thSellamiento.style.display = "none";
-  }
+if (ocultarSellamiento) {
+  const thSellamiento = document.getElementById("thSellamiento");
+  if (thSellamiento) thSellamiento.style.display = "none";
+}
+
 
   (res.Detalle || []).forEach((d, idx) => {
     const row = document.createElement("tr");
