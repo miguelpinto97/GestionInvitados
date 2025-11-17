@@ -202,20 +202,33 @@ window.verDetalle = async (id) => {
   const res = await apiPost({ accion: "obtener", id });
   const tbody = document.querySelector("#tablaDetalle tbody");
   tbody.innerHTML = "";
+
+  // Ocultar columna Sellamiento (th y td)
+  const ocultarSellamiento = !res.MostrarSellamiento;
+
+  if (ocultarSellamiento) {
+    const thSellamiento = document.getElementById("thSellamiento");
+    if (thSellamiento) thSellamiento.style.display = "none";
+  }
+
   (res.Detalle || []).forEach((d, idx) => {
     const row = document.createElement("tr");
+
     row.innerHTML = `
       <td>${d.Integrante}</td>
       <td><button class="btn btn-sm btn-danger" onclick="quitarIntegrante(${idx})">Quitar</button></td>
       <td>${d.Civil ? "✔" : "✖"}</td>
-      <td>${d.Sellamiento ? "✔" : "✖"}</td>
+      ${ocultarSellamiento ? "" : `<td>${d.Sellamiento ? "✔" : "✖"}</td>`}
       <td>${d.Recepcion ? "✔" : "✖"}</td>
       <td>${d.BusGrupal ? "✔" : "✖"}</td>
     `;
+
     tbody.appendChild(row);
   });
+
   modalDetalle.show();
 };
+
 
 // Agregar integrante
 window.agregarIntegrante = async () => {
