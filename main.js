@@ -209,6 +209,9 @@ const ocultarSellamiento = res.MostrarSellamiento !== true;
 if (ocultarSellamiento) {
   const thSellamiento = document.getElementById("thSellamiento");
   if (thSellamiento) thSellamiento.style.display = "none";
+}else{
+  const thSellamiento = document.getElementById("thSellamiento");
+  if (thSellamiento) thSellamiento.style.display = "";
 }
 
 
