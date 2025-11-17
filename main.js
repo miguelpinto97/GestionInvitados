@@ -219,7 +219,7 @@ if (ocultarSellamiento) {
     const row = document.createElement("tr");
 
     row.innerHTML = `
-      <td>${d.Integrante}</td>
+      <td>${d.Integrante === "UNICO" ? res.Nombre : d.Integrante}</td>
       <td><button class="btn btn-sm btn-danger" onclick="quitarIntegrante(${idx})">Quitar</button></td>
       <td>${d.Civil ? "✔" : "✖"}</td>
       ${ocultarSellamiento ? "" : `<td>${d.Sellamiento ? "✔" : "✖"}</td>`}
