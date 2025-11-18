@@ -12,6 +12,16 @@ function checkmark(valor) {
 }
 
 // Función para contar confirmaciones (true = confirmado)
+function contarConfirmaciones(detalle) {
+  let total = 0;
+  if (detalle.Civil) total++;
+  if (detalle.Sellamiento) total++;
+  if (detalle.Recepcion) total++;
+  if (detalle.BusGrupal) total++;
+  return total;
+}
+
+// Cargar todos los invitados con su detalle
 async function cargarConfirmaciones() {
   const lista = await apiPost({ accion: "listar" });
 
@@ -100,7 +110,6 @@ async function cargarConfirmaciones() {
     ]
   });
 }
-
 
 // Inicial
 cargarConfirmaciones();
