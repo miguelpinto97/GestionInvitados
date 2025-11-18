@@ -84,7 +84,7 @@ async function cargarInvitados() {
         <td>
           <select data-id="${inv.id}" class="mesa-select form-select form-select-sm">
              <option value="Sin asignar" >Sin asignar</option>
-           ${Array.from({ length: 20 }, (_, i) => i).map(opt => `
+           ${Array.from({ length: 25 }, (_, i) => i).map(opt => `
               <option value="${opt}" ${Number(inv.Mesa) === opt ? "selected" : ""}>${opt}</option>
             `).join("")}
           </select>
