@@ -102,7 +102,7 @@ async function cargarConfirmaciones() {
 
   // Inicializar DataTable
   $('#tabla-confirmaciones').DataTable({
-    pageLength: 25,
+    pageLength: 100,
     responsive: true,
     order: [], // sin orden inicial, respeta tu sort
     columnDefs: [
