@@ -12,25 +12,12 @@ function checkmark(valor) {
 }
 
 // Función para contar confirmaciones (true = confirmado)
-function contarConfirmaciones(detalle) {
-  let total = 0;
-  if (detalle.Civil) total++;
-  if (detalle.Sellamiento) total++;
-  if (detalle.Recepcion) total++;
-  if (detalle.BusGrupal) total++;
-  return total;
-}
-
-// Cargar todos los invitados con su detalle
 async function cargarConfirmaciones() {
   const lista = await apiPost({ accion: "listar" });
-
-
 
   const cont = document.getElementById("contenedor-confirmaciones");
   cont.innerHTML = "";
 
-  // Aplanar lista: cada integrante será un item individual
   let items = [];
   lista.forEach(inv => {
     (inv.Detalle || []).forEach(d => {
@@ -41,18 +28,16 @@ async function cargarConfirmaciones() {
         Sellamiento: d.Sellamiento,
         Recepcion: d.Recepcion,
         BusGrupal: d.BusGrupal,
-        Mesa : inv.Mesa,
+        Mesa: inv.Mesa,
         Confirmaciones: contarConfirmaciones(d)
       });
     });
   });
 
-  // Ordenar: primero los que tienen más confirmaciones
-//  items.sort((a, b) => b.Confirmaciones - a.Confirmaciones);
-items.sort((a, b) =>
-  a.Mesa.toString().localeCompare(b.Mesa.toString(), "es", { numeric: true })
-);
-  // 🔹 Calcular totales por columna
+  items.sort((a, b) =>
+    a.Mesa.toString().localeCompare(b.Mesa.toString(), "es", { numeric: true })
+  );
+
   const totales = {
     Civil: items.filter(i => i.Civil).length,
     Sellamiento: items.filter(i => i.Sellamiento).length,
@@ -60,8 +45,8 @@ items.sort((a, b) =>
     BusGrupal: items.filter(i => i.BusGrupal).length
   };
 
-  // Tabla principal con conteos en cabecera
   const tabla = document.createElement("table");
+  tabla.id = "tabla-confirmaciones"; // <-- necesario para DataTable
   tabla.className = "table table-bordered table-striped";
   tabla.innerHTML = `
     <thead class="table-dark">
@@ -77,6 +62,7 @@ items.sort((a, b) =>
     </thead>
     <tbody></tbody>
   `;
+
   const tbody = tabla.querySelector("tbody");
 
   items.forEach(item => {
@@ -94,7 +80,27 @@ items.sort((a, b) =>
   });
 
   cont.appendChild(tabla);
+
+  // -----------------------------------------
+  //  3. Inicializar DataTables
+  // -----------------------------------------
+
+  // Si ya había datatable antes → destruirlo
+  if ($.fn.DataTable.isDataTable('#tabla-confirmaciones')) {
+    $('#tabla-confirmaciones').DataTable().destroy();
+  }
+
+  // Inicializar DataTable
+  $('#tabla-confirmaciones').DataTable({
+    pageLength: 25,
+    responsive: true,
+    order: [], // sin orden inicial, respeta tu sort
+    columnDefs: [
+      { targets: "_all", orderable: true } // habilita sorting en todas las columnas
+    ]
+  });
 }
+
 
 // Inicial
 cargarConfirmaciones();
