@@ -54,7 +54,6 @@ async function cargarInvitados() {
     tabla.innerHTML = `
   <thead>
     <tr>
-      <th></th>
       <th>Id</th>
       <th>Acciones</th>
       <th>Nombre</th>
@@ -68,16 +67,13 @@ async function cargarInvitados() {
   <tbody>
     ${invitadosMesa.map(inv => `
       <tr>
-        <td>
-          <button class="btn btn-sm btn-outline-primary" onclick="copiarEnlace('${inv.id}')">
-            Link
-          </button>
-        </td>
         <td>${inv.id}</td>
         <td>
+          <button class="btn btn-sm btn-outline-primary" onclick="copiarEnlace('${inv.id}')">🔗</button>
           <button class="btn btn-sm btn-warning" onclick="editarInvitado('${inv.id}')">✏️</button>
           <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
-          <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥 Detalle</button>
+          <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥</button>
+          <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">🔒</button>
         </td>
         <td>${inv.Nombre}</td>
         <td>${inv.Detalle?.length ?? 0}</td>
