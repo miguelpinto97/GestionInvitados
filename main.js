@@ -348,7 +348,7 @@ function generarId(lista) {
     }
   }
   if (numero === null) {
-    throw new Error("Se alcanzó el máximo de 100 IDs");
+    throw new Error("Se alcanzó el máximo de 130 IDs");
   }
 
   const numeroStr = String(numero).padStart(3, "0");
@@ -371,3 +371,49 @@ function generarId(lista) {
   return candidato;
 }
 
+window.exportarExcel = async () => {
+
+  if (!lista) {
+    lista = await apiPost({ accion: "listar" });
+  }
+
+  const filas = [];
+
+  lista.forEach(inv => {
+    const telefono = inv.Telefono || "";
+    const mesa = inv.Mesa || "Sin asignar";
+    const nombreInv = inv.Nombre || "";
+    const id = inv.id;
+    const detalle = inv.Detalle || [];
+
+    // Si no tiene detalle, igual se exporta una fila con "UNICO"
+    if (detalle.length === 0) {
+      filas.push({
+        InvitadoId: id,
+        Invitado: nombreInv,
+        Integrante: nombreInv,
+        Telefono: telefono,
+        Mesa: mesa
+      });
+    } else {
+      detalle.forEach(d => {
+        filas.push({
+          InvitadoId: id,
+          Invitado: nombreInv,
+          Integrante: d.Integrante === "UNICO" ? nombreInv : d.Intergrante || d.Integrante,
+          Telefono: telefono,
+          Mesa: mesa
+        });
+      });
+    }
+
+  });
+
+  // Crear hoja Excel
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(filas);
+
+  XLSX.utils.book_append_sheet(wb, ws, "Invitados");
+
+  XLSX.writeFile(wb, "InvitadosDetalle.xlsx");
+};
