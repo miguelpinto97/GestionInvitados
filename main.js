@@ -52,50 +52,71 @@ async function cargarInvitados() {
     const tabla = document.createElement("table");
     tabla.classList.add("table", "table-striped", "m-0");
     tabla.innerHTML = `
-  <thead>
-    <tr>
-      <th>Id</th>
-      <th>Acciones</th>
-      <th>Nombre</th>
-      <th>Cant.</th>
-      <th>Mesa</th>
-      <th>Vehículo</th>
-      <th>Teléfono</th>
-      <th>F. Límite</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${invitadosMesa.map(inv => `
-      <tr>
-        <td>${inv.id}</td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="copiarEnlace('${inv.id}')">🔗</button>
-            <button class="btn btn-sm btn-warning" onclick="editarInvitado('${inv.id}')">✏️</button>
-            <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
-            <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥</button>
+<thead>
+  <tr>
+    <th>Id</th>
+    <th>Acciones</th>
+    <th>Nombre</th>
+    <th>Cant.</th>
+    <th>Mesa</th>
+    <th>Vehículo</th>
+    <th>Teléfono</th>
+    <th>Bus</th>
+    <th>F. Límite</th>
+  </tr>
+</thead>
 
-            ${inv.BloquearEdicion ? `
-              <button class="btn btn-sm btn-outline-primary" onclick="desbloquearInvitado('${inv.id}')">🔓🔄</button>
-            ` : `
-              <button class="btn btn-sm btn-outline-primary" onclick="bloquearInvitado('${inv.id}')">🔒🚫</button>
-            `}
-        </td>
-        <td>${inv.Nombre}</td>
-        <td>${inv.Detalle?.length ?? 0}</td>
-        <td>
-          <select data-id="${inv.id}" class="mesa-select form-select form-select-sm">
-             <option value="Sin asignar" >Sin asignar</option>
-           ${Array.from({ length: 25 }, (_, i) => i).map(opt => `
-              <option value="${opt}" ${Number(inv.Mesa) === opt ? "selected" : ""}>${opt}</option>
-            `).join("")}
-          </select>
-        </td>
-        <td>${inv.Vehiculo ? "Sí" : "No"}</td>
-        <td>${inv.Telefono || ""}</td>
-        <td>${inv.FechaLimite || "11 de Octubre"}</td>
-      </tr>
-    `).join("")}
-  </tbody>
+<tbody>
+  ${invitadosMesa.map(inv => `
+    <tr>
+      <td>${inv.id}</td>
+
+      <td>
+          <button class="btn btn-sm btn-outline-primary" onclick="copiarEnlace('${inv.id}')">🔗</button>
+          <button class="btn btn-sm btn-warning" onclick="editarInvitado('${inv.id}')">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
+          <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥</button>
+
+          <!-- Bloqueo -->
+          ${inv.BloquearEdicion ? `
+            <button class="btn btn-sm btn-outline-primary" onclick="desbloquearInvitado('${inv.id}')">🔓🔄</button>
+          ` : `
+            <button class="btn btn-sm btn-outline-primary" onclick="bloquearInvitado('${inv.id}')">🔒🚫</button>
+          `}
+
+          <!-- PagoBus -->
+          ${inv.PagoBus ? `
+            <button class="btn btn-sm btn-outline-primary" onclick="marcarNoPagado('${inv.id}')">💸❌</button>
+          ` : `
+            <button class="btn btn-sm btn-outline-primary" onclick="marcarPagado('${inv.id}')">💸✔️</button>
+          `}
+      </td>
+
+      <td>${inv.Nombre}</td>
+      <td>${inv.Detalle?.length ?? 0}</td>
+
+      <td>
+        <select data-id="${inv.id}" class="mesa-select form-select form-select-sm">
+           <option value="Sin asignar">Sin asignar</option>
+         ${Array.from({ length: 25 }, (_, i) => i).map(opt => `
+            <option value="${opt}" ${Number(inv.Mesa) === opt ? "selected" : ""}>${opt}</option>
+          `).join("")}
+        </select>
+      </td>
+
+      <td>${inv.Vehiculo ? "Sí" : "No"}</td>
+      <td>${inv.Telefono || ""}</td>
+
+      <!-- Nueva columna Bus con ícono -->
+      <td style="font-size: 1.2em;">
+        ${inv.PagoBus ? "💸✔️" : "💸❌"}
+      </td>
+
+      <td>${inv.FechaLimite || "11 de Octubre"}</td>
+    </tr>
+  `).join("")}
+</tbody>
+
 `;
 
     // Armar estructura
@@ -292,6 +313,21 @@ window.generarSinDetalle = async (idx) => {
 
 };
 
+window.marcarPagado = async (id) => {
+  if (confirm("Marcar como pagado el Bus?")) {
+    await apiPost({ accion: "MarcarPagoBus", id });
+    cargarInvitados();
+    showSuccessToast("Pago registrado");
+  }
+};
+
+window.marcarNoPagado = async (id) => {
+  if (confirm("Quitar registro de pago del Bus?")) {
+    await apiPost({ accion: "DesmarcarPagoBus", id });
+    cargarInvitados();
+    showSuccessToast("Pago removido");
+  }
+};
 
 // Inicial
 cargarInvitados();

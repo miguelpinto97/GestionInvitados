@@ -39,7 +39,8 @@ async function cargarConfirmaciones() {
         Recepcion: d.Recepcion,
         BusGrupal: d.BusGrupal,
         Mesa: inv.Mesa,
-        Confirmaciones: contarConfirmaciones(d)
+        Confirmaciones: contarConfirmaciones(d),
+        PagoBus: inv.PagoBus ?? false
       });
     });
   });
@@ -67,6 +68,7 @@ async function cargarConfirmaciones() {
         <th>Sellamiento (${totales.Sellamiento})</th>
         <th>Recepción (${totales.Recepcion})</th>
         <th>Bus (${totales.BusGrupal})</th>
+        <th>Pagado</th>
         <th>Total Confirmaciones</th>
       </tr>
     </thead>
@@ -84,7 +86,14 @@ async function cargarConfirmaciones() {
       <td class="text-center">${checkmark(item.Sellamiento)}</td>
       <td class="text-center">${checkmark(item.Recepcion)}</td>
       <td class="text-center">${checkmark(item.BusGrupal)}</td>
+      <td class="text-center">
+      ${ item.BusGrupal 
+          ? (item.PagoBus ? "💸✔️" : "❌") 
+          : "" 
+      }
+      </td>
       <td class="text-center fw-bold">${item.Confirmaciones}</td>
+
     `;
     tbody.appendChild(row);
   });

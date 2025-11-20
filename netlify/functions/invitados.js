@@ -60,7 +60,7 @@ export async function handler(event) {
 
       return { statusCode: 200, body: JSON.stringify({ ok: true, id: docId }) };
     }
-    
+
     if (accion === "DesbloquearEdicion") {
       const docId = Id || id;
 
@@ -69,11 +69,32 @@ export async function handler(event) {
         { BloquearEdicion: false },
         { merge: true }
       );
+      return { statusCode: 200, body: JSON.stringify({ ok: true, id: docId }) };
+    }
+    
+    if (accion === "MarcarPagoBus") {
+      const docId = Id || id;
+
+      await setDoc(
+        doc(db, "Invitados", docId),
+        { PagoBus: true },
+        { merge: true }
+      );
 
       return { statusCode: 200, body: JSON.stringify({ ok: true, id: docId }) };
     }
+    
+    if (accion === "DesmarcarPagoBus") {
+      const docId = Id || id;
 
+      await setDoc(
+        doc(db, "Invitados", docId),
+        { PagoBus: false },
+        { merge: true }
+      );
 
+      return { statusCode: 200, body: JSON.stringify({ ok: true, id: docId }) };
+    }
 
     return { statusCode: 400, body: JSON.stringify({ error: "Acción inválida" }) };
   } catch (err) {
