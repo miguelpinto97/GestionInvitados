@@ -49,6 +49,32 @@ export async function handler(event) {
       return { statusCode: 200, body: JSON.stringify({ ok: true }) };
     }
 
+    if (accion === "BloquearEdicion") {
+      const docId = Id || id;
+
+      await setDoc(
+        doc(db, "Invitados", docId),
+        { BloquearEdicion: true },
+        { merge: true }
+      );
+
+      return { statusCode: 200, body: JSON.stringify({ ok: true, id: docId }) };
+    }
+    
+    if (accion === "DesbloquearEdicion") {
+      const docId = Id || id;
+
+      await setDoc(
+        doc(db, "Invitados", docId),
+        { BloquearEdicion: false },
+        { merge: true }
+      );
+
+      return { statusCode: 200, body: JSON.stringify({ ok: true, id: docId }) };
+    }
+
+
+
     return { statusCode: 400, body: JSON.stringify({ error: "Acción inválida" }) };
   } catch (err) {
     console.error("Error en function:", err);

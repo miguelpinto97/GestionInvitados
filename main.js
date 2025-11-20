@@ -69,11 +69,16 @@ async function cargarInvitados() {
       <tr>
         <td>${inv.id}</td>
         <td>
-          <button class="btn btn-sm btn-outline-primary" onclick="copiarEnlace('${inv.id}')">🔗</button>
-          <button class="btn btn-sm btn-warning" onclick="editarInvitado('${inv.id}')">✏️</button>
-          <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
-          <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥</button>
-          <button class="btn btn-sm btn-outline-primary" onclick="bloquearInvitado('${inv.id}')">🔒</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="copiarEnlace('${inv.id}')">🔗</button>
+            <button class="btn btn-sm btn-warning" onclick="editarInvitado('${inv.id}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="eliminarInvitado('${inv.id}')">🗑️</button>
+            <button class="btn btn-sm btn-info" onclick="verDetalle('${inv.id}')">👥</button>
+
+            ${inv.BloquearEdicion ? `
+              <button class="btn btn-sm btn-outline-primary" onclick="desbloquearInvitado('${inv.id}')">🔓🔄</button>
+            ` : `
+              <button class="btn btn-sm btn-outline-primary" onclick="bloquearInvitado('${inv.id}')">🔒🚫</button>
+            `}
         </td>
         <td>${inv.Nombre}</td>
         <td>${inv.Detalle?.length ?? 0}</td>
@@ -192,10 +197,18 @@ window.eliminarInvitado = async (id) => {
   }
 };
 window.bloquearInvitado = async (id) => {
-  if (confirm("Bloquear Edición del invitado?")) {
-    //await apiPost({ accion: "eliminar", id });
-    //cargarInvitados();
-    showSuccessToast("Todavía no hace nada");
+  if (confirm("Bloquear edición del invitado?")) {
+    await apiPost({ accion: "BloquearEdicion", id });
+    cargarInvitados();
+    showSuccessToast("Edición bloqueada");
+  }
+};
+
+window.desbloquearInvitado = async (id) => {
+  if (confirm("Desbloquear edición del invitado?")) {
+    await apiPost({ accion: "DesbloquearEdicion", id });
+    cargarInvitados();
+    showSuccessToast("Edición desbloqueada");
   }
 };
 
