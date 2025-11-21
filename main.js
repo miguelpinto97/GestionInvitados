@@ -437,6 +437,9 @@ window.exportarExcel = async () => {
     const nombreInv = inv.Nombre || "";
     const id = inv.id;
     const detalle = inv.Detalle || [];
+    const busGrupal = inv.BusGrupal;
+    const pagoBus = inv.PagoBus;
+
 
     // Si no tiene detalle, igual se exporta una fila con "UNICO"
     if (detalle.length === 0) {
@@ -445,7 +448,9 @@ window.exportarExcel = async () => {
         Invitado: nombreInv,
         Integrante: nombreInv,
         Telefono: telefono,
-        Mesa: mesa
+        Mesa: mesa,
+        BusGrupal:busGrupal,
+        PagoBus: pagoBus
       });
     } else {
       detalle.forEach(d => {
@@ -454,7 +459,9 @@ window.exportarExcel = async () => {
           Invitado: nombreInv,
           Integrante: d.Integrante === "UNICO" ? nombreInv : d.Intergrante || d.Integrante,
           Telefono: telefono,
-          Mesa: mesa
+          Mesa: mesa,
+          BusGrupal:d.BusGrupal,
+          PagoBus: pagoBus
         });
       });
     }
