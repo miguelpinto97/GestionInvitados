@@ -93,7 +93,13 @@ async function cargarInvitados() {
       </td>
 
       <td>${inv.Nombre}</td>
-      <td>${inv.Detalle?.length ?? 0}</td>
+<td>
+  ${(() => {
+      const total = inv.Detalle?.length ?? 0;
+      const recepcionMarcados = (inv.Detalle || []).filter(d => d.Recepcion).length;
+      return `${recepcionMarcados}/${total}`;
+  })()}
+</td>
 
       <td>
         <select data-id="${inv.id}" class="mesa-select form-select form-select-sm">
