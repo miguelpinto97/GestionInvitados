@@ -508,32 +508,33 @@ window.exportarPDF = async () => {
     return parseInt(a) - parseInt(b);
   }).forEach(mesa => {
 
-    if (!primeraPagina) doc.addPage();
-    primeraPagina = false;
-
-    doc.setFontSize(18);
-    doc.text(`Mesa ${mesa}`, 14, 15);
-
     const filas = [];
 
     grupos[mesa].forEach(inv => {
       const detalle = inv.Detalle || [];
 
-      if (detalle.length === 0) {
+      // Filtrar solo los que tienen Recepcion = true
+      const detalleFiltrado = detalle.filter(d => d.Recepcion === true);
+
+      // Si nadie del detalle pasa el filtro → se omite el invitado
+      if (detalleFiltrado.length === 0) return;
+
+      detalleFiltrado.forEach(d => {
         filas.push([
           inv.Nombre,
-          "UNICO"
+          d.Integrante === "UNICO" ? inv.Nombre : d.Integrante
         ]);
-      } else {
-        detalle.forEach(d => {
-          filas.push([
-            inv.Nombre,
-            d.Integrante === "UNICO" ? inv.Nombre : d.Integrante
-          ]);
-        });
-      }
-
+      });
     });
+
+    // Si la mesa quedó sin filas, no generamos página
+    if (filas.length === 0) return;
+
+    if (!primeraPagina) doc.addPage();
+    primeraPagina = false;
+
+    doc.setFontSize(18);
+    doc.text(`Mesa ${mesa}`, 14, 15);
 
     doc.autoTable({
       startY: 25,
