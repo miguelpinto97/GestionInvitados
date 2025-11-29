@@ -601,55 +601,64 @@ window.exportarPDFBus = async () => {
 
   doc.save("BusPagado.pdf");
 };
-window.exportarPDFSinAsignar = async () => {
+window.exportarSinAsignarOrdenado = async () => {
 
   if (!lista) {
     lista = await apiPost({ accion: "listar" });
   }
 
-  // Filtrar mesas diferentes a "Sin asignar"
-  const filtrados = lista.filter(inv => inv.Mesa !== "Sin asignar");
-
-  // Ordenar alfabéticamente por nombre principal
-  filtrados.sort((a, b) => (a.Nombre || "").localeCompare(b.Nombre || ""));
-
-  const filas = [];
-
-  filtrados.forEach(inv => {
-    const nombrePrincipal = inv.Nombre || "";
-    const detalle = inv.Detalle || [];
-
-    if (detalle.length === 0) {
-      // Caso sin detalle: UNICO
-      filas.push([nombrePrincipal, nombrePrincipal]);
-    } else {
-      detalle.forEach(d => {
-        const integrante =
-          d.Integrante === "UNICO" ? nombrePrincipal : d.Integrante;
-        filas.push([nombrePrincipal, integrante]);
-      });
-    }
-  });
-
-  // Si no hay filas, no generamos archivo
-  if (filas.length === 0) {
-    alert("No hay invitados para exportar.");
-    return;
-  }
-
-  // Crear PDF
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  doc.setFontSize(18);
-  doc.text("Invitados por mesa (excepto Sin asignar)", 14, 15);
+  let filas = [];
+
+  // Recorrer invitados excepto mesa "Sin asignar"
+  lista
+    .filter(inv => (inv.Mesa || "Sin asignar") !== "Sin asignar")
+    .forEach(inv => {
+
+      const detalle = inv.Detalle || [];
+
+      if (detalle.length === 0) {
+        // UNICO sin array Detalle
+        filas.push({
+          principal: inv.Nombre,
+          integrante: inv.Nombre,   // UNICO
+          orden: inv.Nombre.toLowerCase()
+        });
+      } else {
+        detalle.forEach(d => {
+          const integrante = d.Integrante === "UNICO" ? inv.Nombre : d.Integrante;
+
+          filas.push({
+            principal: inv.Nombre,
+            integrante: integrante,
+            orden: integrante.toLowerCase() // se ordena por el integrante
+          });
+        });
+      }
+
+    });
+
+  // Ordenar por Integrante (o Nombre si es UNICO)
+  filas.sort((a, b) => {
+    if (a.orden < b.orden) return -1;
+    if (a.orden > b.orden) return 1;
+    return 0;
+  });
+
+  // Preparar filas para PDF
+  const body = filas.map(x => [x.principal, x.integrante]);
+
+  doc.setFontSize(16);
+  doc.text("Invitados Ordenados por Integrante", 14, 15);
 
   doc.autoTable({
     startY: 25,
-    head: [["Invitado", "Integrante"]],
-    body: filas,
+    head: [["Principal", "Integrante"]],
+    body: body,
     styles: { fontSize: 10 }
   });
 
-  doc.save("Invitados_Asignados.pdf");
+  doc.save("InvitadosOrdenadosPorIntegrante.pdf");
 };
