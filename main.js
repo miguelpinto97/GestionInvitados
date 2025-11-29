@@ -547,3 +547,57 @@ window.exportarPDF = async () => {
 
   doc.save("InvitadosPorMesa.pdf");
 };
+window.exportarPDFBus = async () => {
+
+  if (!lista) {
+    lista = await apiPost({ accion: "listar" });
+  }
+
+  // Filtrar solo invitados que pagaron el bus
+  const invitadosPagaron = lista.filter(inv => inv.PagoBus === true);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let filas = [];
+
+  invitadosPagaron.forEach(inv => {
+    const detalle = inv.Detalle || [];
+
+    if (detalle.length === 0) {
+      // Si no tiene detalle, se usa el nombre del invitado
+      filas.push([
+        inv.Nombre,
+        inv.Nombre
+      ]);
+    } else {
+      detalle.forEach(d => {
+        // Solo los integrantes marcados para bus grupal
+        if (d.BusGrupal === true) {
+          filas.push([
+            inv.Nombre,
+            d.Integrante === "UNICO" ? inv.Nombre : d.Integrante
+          ]);
+        }
+      });
+    }
+  });
+
+  // Si no hay filas, no generamos archivo
+  if (filas.length === 0) {
+    alert("No hay invitados con Bus Pagado.");
+    return;
+  }
+
+  doc.setFontSize(18);
+  doc.text(`Invitados con Bus Pagado`, 14, 15);
+
+  doc.autoTable({
+    startY: 25,
+    head: [["Invitado", "Integrante"]],
+    body: filas,
+    styles: { fontSize: 10 }
+  });
+
+  doc.save("BusPagado.pdf");
+};
