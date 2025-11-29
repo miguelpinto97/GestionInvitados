@@ -482,3 +482,69 @@ window.exportarExcel = async () => {
 
   XLSX.writeFile(wb, "InvitadosDetalle.xlsx");
 };
+window.exportarPDF = async () => {
+
+  if (!lista) {
+    lista = await apiPost({ accion: "listar" });
+  }
+
+  // Agrupar por mesa
+  const grupos = {};
+  lista.forEach(inv => {
+    const mesa = inv.Mesa || "Sin asignar";
+    if (!grupos[mesa]) grupos[mesa] = [];
+    grupos[mesa].push(inv);
+  });
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let primeraPagina = true;
+
+  // Por cada mesa
+  Object.keys(grupos).sort((a, b) => {
+    if (a === "Sin asignar") return 1;
+    if (b === "Sin asignar") return -1;
+    return parseInt(a) - parseInt(b);
+  }).forEach(mesa => {
+
+    if (!primeraPagina) doc.addPage();
+    primeraPagina = false;
+
+    doc.setFontSize(18);
+    doc.text(`Mesa ${mesa}`, 14, 15);
+
+    const filas = [];
+
+    grupos[mesa].forEach(inv => {
+      const detalle = inv.Detalle || [];
+
+      if (detalle.length === 0) {
+        filas.push([
+          inv.Nombre,
+          inv.Telefono || "",
+          "UNICO"
+        ]);
+      } else {
+        detalle.forEach(d => {
+          filas.push([
+            inv.Nombre,
+            inv.Telefono || "",
+            d.Integrante === "UNICO" ? inv.Nombre : d.Integrante
+          ]);
+        });
+      }
+
+    });
+
+    doc.autoTable({
+      startY: 25,
+      head: [["Invitado", "Teléfono", "Integrante"]],
+      body: filas,
+      styles: { fontSize: 10 }
+    });
+
+  });
+
+  doc.save("InvitadosPorMesa.pdf");
+};
