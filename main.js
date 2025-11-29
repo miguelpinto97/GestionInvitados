@@ -522,14 +522,12 @@ window.exportarPDF = async () => {
       if (detalle.length === 0) {
         filas.push([
           inv.Nombre,
-          inv.Telefono || "",
           "UNICO"
         ]);
       } else {
         detalle.forEach(d => {
           filas.push([
             inv.Nombre,
-            inv.Telefono || "",
             d.Integrante === "UNICO" ? inv.Nombre : d.Integrante
           ]);
         });
@@ -539,7 +537,7 @@ window.exportarPDF = async () => {
 
     doc.autoTable({
       startY: 25,
-      head: [["Invitado", "Teléfono", "Integrante"]],
+      head: [["Invitado", "Integrante"]],
       body: filas,
       styles: { fontSize: 10 }
     });
