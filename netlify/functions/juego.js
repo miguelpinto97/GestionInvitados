@@ -140,7 +140,44 @@ export async function handler(event) {
       body: JSON.stringify(usuarios)
     };
   }
+if (accion === "validar") {
+  const { codigo } = data;
 
+  if (!codigo) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: "Código requerido"
+    };
+  }
+
+  const salaRef = doc(db, "salas", codigo);
+  const salaSnap = await getDoc(salaRef);
+
+  if (!salaSnap.exists()) {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ valida: false })
+    };
+  }
+
+  const sala = salaSnap.data();
+
+  if (!sala.activa) {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ valida: false })
+    };
+  }
+
+  return {
+    statusCode: 200,
+    headers: corsHeaders,
+    body: JSON.stringify({ valida: true })
+  };
+}
   // -----------------------------
   // ACCIÓN NO SOPORTADA
   // -----------------------------
