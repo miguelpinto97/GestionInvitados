@@ -1,12 +1,14 @@
 import { initializeApp } from "firebase/app";
 import {
-    getFirestore,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    setDoc
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  deleteDoc
 } from "firebase/firestore";
+
 import { randomUUID } from "crypto";
 
 const firebaseConfig = {
@@ -178,6 +180,37 @@ if (accion === "validar") {
     body: JSON.stringify({ valida: true })
   };
 }
+
+// -----------------------------
+// SALIR DE SALA
+// -----------------------------
+if (accion === "salir") {
+  const { codigo, userId } = data;
+
+  if (!codigo || !userId) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: "Datos incompletos"
+    };
+  }
+
+  const userRef = doc(db, "salas", codigo, "usuarios", userId);
+  const snap = await getDoc(userRef);
+
+  // Si no existe, no pasa nada (idempotente)
+  if (snap.exists()) {
+    await deleteDoc(userRef);
+  }
+
+  return {
+    statusCode: 200,
+    headers: corsHeaders,
+    body: JSON.stringify({ ok: true })
+  };
+}
+
+
   // -----------------------------
   // ACCIÓN NO SOPORTADA
   // -----------------------------
