@@ -214,165 +214,183 @@ export async function handler(event) {
   // -----------------------------
   // INICIAR JUEGO
   // -----------------------------
-  if (accion === "iniciar") {
-    const { codigo, secreto, usuarios } = data;
+ if (accion === "iniciar") {
+  const { codigo, secreto, usuarios } = data;
 
-    if (!codigo || !secreto) {
-      return apiResponse(false, "Código y secreto son requeridos");
-    }
+  // -----------------------------
+  // VALIDACIONES BÁSICAS
+  // -----------------------------
+  if (!codigo || !secreto) {
+    return apiResponse(false, "Código y secreto son requeridos");
+  }
 
-    if (!Array.isArray(usuarios) || usuarios.length < 3) {
-      return apiResponse(false, "Se requieren al menos 3 usuarios válidos");
-    }
+  if (!Array.isArray(usuarios) || usuarios.length < 3) {
+    return apiResponse(false, "Se requieren al menos 3 usuarios válidos");
+  }
 
-    const salaRef = doc(db, "salas", codigo);
-    const salaSnap = await getDoc(salaRef);
+  const salaRef = doc(db, "salas", codigo);
+  const salaSnap = await getDoc(salaRef);
 
-    if (!salaSnap.exists()) {
-      return apiResponse(false, "La sala no existe");
-    }
+  if (!salaSnap.exists()) {
+    return apiResponse(false, "La sala no existe");
+  }
 
-    const sala = salaSnap.data();
+  const sala = salaSnap.data();
 
-    if (!sala.activa) {
-      return apiResponse(false, "La sala no está activa");
-    }
+  if (!sala.activa) {
+    return apiResponse(false, "La sala no está activa");
+  }
 
-    if (sala.iniciada) {
-      return apiResponse(false, "El juego ya fue iniciado");
-    }
+  if (sala.iniciada) {
+    return apiResponse(false, "El juego ya fue iniciado");
+  }
 
-    if (sala.secreto !== secreto) {
-      return apiResponse(false, "La sala debe ser iniciada por el host");
-    }
+  if (sala.secreto !== secreto) {
+    return apiResponse(false, "La sala debe ser iniciada por el host");
+  }
 
-    // -----------------------------
-    // SINCRONIZAR USUARIOS
-    // -----------------------------
-    const usuariosValidosIds = usuarios.map(u => u.Id);
-
-    const usersRef = collection(db, "salas", codigo, "usuarios");
-    const usersSnap = await getDocs(usersRef);
-
-    const deletes = [];
-
-    usersSnap.forEach(docSnap => {
-      if (!usuariosValidosIds.includes(docSnap.id)) {
-        deletes.push(deleteDoc(docSnap.ref));
-      }
-    });
-
-    await Promise.all(deletes);
-
-    // -----------------------------
-    // USAR SOLO USUARIOS VALIDOS
-    // -----------------------------
-    const jugadores = usuarios.map(u => ({
+  // -----------------------------
+  // NORMALIZAR USUARIOS (CLAVE)
+  // -----------------------------
+  const usuariosValidos = usuarios
+    .filter(u => u.Id && u.Nickname)
+    .map(u => ({
       id: u.Id,
       nickname: u.Nickname
     }));
 
-    // -----------------------------
-    // SHUFFLE
-    // -----------------------------
-    const shuffle = (array) => {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
+  if (usuariosValidos.length < 3) {
+    return apiResponse(false, "Usuarios inválidos recibidos desde realtime");
+  }
+
+  const usuariosValidosIds = usuariosValidos.map(u => u.id);
+
+  // -----------------------------
+  // ELIMINAR USUARIOS QUE YA NO ESTÁN
+  // -----------------------------
+  const usersRef = collection(db, "salas", codigo, "usuarios");
+  const usersSnap = await getDocs(usersRef);
+
+  const deletes = [];
+  usersSnap.forEach(docSnap => {
+    if (!usuariosValidosIds.includes(docSnap.id)) {
+      deletes.push(deleteDoc(docSnap.ref));
+    }
+  });
+
+  await Promise.all(deletes);
+
+  // -----------------------------
+  // SHUFFLE UTIL
+  // -----------------------------
+  const shuffle = (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  };
+
+  shuffle(usuariosValidos);
+
+  // -----------------------------
+  // ASIGNAR JUEZ
+  // -----------------------------
+  const juez = usuariosValidos.shift();
+
+  const asignaciones = {
+    [juez.id]: {
+      rol: "rol_0001", // JUEZ
+      equipo: 0
+    }
+  };
+
+  // -----------------------------
+  // DIVIDIR EQUIPOS
+  // -----------------------------
+  const equipo1 = [];
+  const equipo2 = [];
+
+  usuariosValidos.forEach((u, i) => {
+    (i % 2 === 0 ? equipo1 : equipo2).push(u);
+  });
+
+  // -----------------------------
+  // OBTENER ROLES DESDE FIRESTORE
+  // (EXCLUYE JUEZ Y ABOGADO)
+  // -----------------------------
+  const rolesSnap = await getDocs(collection(db, "roles"));
+
+  const ROLES_DISPONIBLES = rolesSnap.docs
+    .filter(r => r.data().fijo !== true)
+    .map(r => r.id);
+
+  if (ROLES_DISPONIBLES.length === 0) {
+    return apiResponse(false, "No hay roles disponibles para asignar");
+  }
+
+  // -----------------------------
+  // ASIGNAR EQUIPO + ABOGADO
+  // -----------------------------
+  const asignarEquipo = (equipo, numeroEquipo) => {
+    shuffle(equipo);
+
+    const abogado = equipo.shift();
+
+    asignaciones[abogado.id] = {
+      rol: "rol_0002", // ABOGADO
+      equipo: numeroEquipo
     };
 
-    shuffle(jugadores);
+    equipo.forEach(j => {
+      const rolRandom =
+        ROLES_DISPONIBLES[Math.floor(Math.random() * ROLES_DISPONIBLES.length)];
 
-    // -----------------------------
-    // ASIGNAR JUEZ
-    // -----------------------------
-    const juez = jugadores.shift();
-
-    const asignaciones = {
-      [juez.id]: {
-        rol: "rol_0001",
-        equipo: 0
-      }
-    };
-
-    // -----------------------------
-    // DIVIDIR EQUIPOS
-    // -----------------------------
-    const equipo1 = [];
-    const equipo2 = [];
-
-    jugadores.forEach((j, i) => {
-      (i % 2 === 0 ? equipo1 : equipo2).push(j);
-    });
-
-    const ROLES_DISPONIBLES = [
-      "rol_0003",
-      "rol_0004",
-      "rol_0005",
-      "rol_0006",
-      "rol_0007",
-      "rol_0008",
-      "rol_0009"
-    ];
-
-    const asignarEquipo = (equipo, numeroEquipo) => {
-      shuffle(equipo);
-
-      const abogado = equipo.shift();
-      asignaciones[abogado.id] = {
-        rol: "rol_0002",
+      asignaciones[j.id] = {
+        rol: rolRandom,
         equipo: numeroEquipo
       };
+    });
+  };
 
-      equipo.forEach(j => {
-        const rolRandom =
-          ROLES_DISPONIBLES[Math.floor(Math.random() * ROLES_DISPONIBLES.length)];
+  asignarEquipo(equipo1, 1);
+  asignarEquipo(equipo2, 2);
 
-        asignaciones[j.id] = {
-          rol: rolRandom,
-          equipo: numeroEquipo
-        };
-      });
-    };
+  // -----------------------------
+  // GUARDAR ROLES Y EQUIPOS
+  // -----------------------------
+  const writes = [];
 
-    asignarEquipo(equipo1, 1);
-    asignarEquipo(equipo2, 2);
-
-    // -----------------------------
-    // GUARDAR ROLES Y EQUIPOS
-    // -----------------------------
-    const writes = [];
-
-    for (const userId in asignaciones) {
-      writes.push(
-        setDoc(
-          doc(db, "salas", codigo, "usuarios", userId),
-          {
-            rol: asignaciones[userId].rol,
-            equipo: asignaciones[userId].equipo
-          },
-          { merge: true }
-        )
-      );
-    }
-
-    await Promise.all(writes);
-
-    // -----------------------------
-    // INICIAR SALA
-    // -----------------------------
-    await setDoc(
-      salaRef,
-      {
-        iniciada: true,
-        iniciadaAt: new Date()
-      },
-      { merge: true }
+  for (const userId in asignaciones) {
+    writes.push(
+      setDoc(
+        doc(db, "salas", codigo, "usuarios", userId),
+        {
+          nickname: usuariosValidos.find(u => u.id === userId)?.nickname,
+          rol: asignaciones[userId].rol,
+          equipo: asignaciones[userId].equipo
+        },
+        { merge: true }
+      )
     );
-
-    return apiResponse(true, "El juego ha iniciado correctamente");
   }
+
+  await Promise.all(writes);
+
+  // -----------------------------
+  // MARCAR SALA COMO INICIADA
+  // -----------------------------
+  await setDoc(
+    salaRef,
+    {
+      iniciada: true,
+      iniciadaAt: new Date()
+    },
+    { merge: true }
+  );
+
+  return apiResponse(true, "El juego ha iniciado correctamente");
+}
+
 
 
 
