@@ -124,6 +124,8 @@ export async function handler(event) {
     await setDoc(doc(db, "salas", codigo, "usuarios", userId), {
       nickname,
       joinedAt: new Date(),
+      rol: "",
+      equipo: ""
     });
 
     return apiResponse(true, "Usuario unido a la sala", {
@@ -240,8 +242,117 @@ export async function handler(event) {
       return apiResponse(false, "La sala debe ser iniciada por el host");
     }
 
+    // -----------------------------
+    // OBTENER JUGADORES
+    // -----------------------------
+    const usersSnap = await getDocs(collection(db, "salas", codigo, "usuarios"));
 
-    // ✅ Todo correcto → iniciar juego
+    if (usersSnap.size < 3) {
+      return apiResponse(false, "Se requieren al menos 3 jugadores");
+    }
+
+    const jugadores = usersSnap.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    }));
+
+    // -----------------------------
+    // SHUFFLE
+    // -----------------------------
+    const shuffle = (array) => {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    };
+
+    shuffle(jugadores);
+
+    // -----------------------------
+    // ASIGNAR JUEZ
+    // -----------------------------
+    const juez = jugadores.shift();
+
+    const asignaciones = {
+      [juez.id]: {
+        rol: "rol_0001", // Juez
+        equipo: 0
+      }
+    };
+
+    // -----------------------------
+    // DIVIDIR EQUIPOS
+    // -----------------------------
+    const equipo1 = [];
+    const equipo2 = [];
+
+    jugadores.forEach((j, index) => {
+      (index % 2 === 0 ? equipo1 : equipo2).push(j);
+    });
+
+    // -----------------------------
+    // ROLES DISPONIBLES (SIN JUEZ)
+    // -----------------------------
+    const ROLES_DISPONIBLES = [
+      "rol_0002", // Abogado
+      "rol_0003",
+      "rol_0004",
+      "rol_0005",
+      "rol_0006",
+      "rol_0007",
+      "rol_0008",
+      "rol_0009"
+    ];
+
+    const asignarEquipo = (equipo, numeroEquipo) => {
+      shuffle(equipo);
+
+      // Abogado
+      const abogado = equipo.shift();
+      asignaciones[abogado.id] = {
+        rol: "rol_0002",
+        equipo: numeroEquipo
+      };
+
+      // Resto de jugadores
+      equipo.forEach(j => {
+        const rolRandom =
+          ROLES_DISPONIBLES[Math.floor(Math.random() * ROLES_DISPONIBLES.length)];
+
+        asignaciones[j.id] = {
+          rol: rolRandom,
+          equipo: numeroEquipo
+        };
+      });
+    };
+
+    asignarEquipo(equipo1, 1);
+    asignarEquipo(equipo2, 2);
+
+    // -----------------------------
+    // GUARDAR EN FIRESTORE
+    // -----------------------------
+    const batch = [];
+
+    for (const userId in asignaciones) {
+      const ref = doc(db, "salas", codigo, "usuarios", userId);
+      batch.push(
+        setDoc(
+          ref,
+          {
+            rol: asignaciones[userId].rol,
+            equipo: asignaciones[userId].equipo
+          },
+          { merge: true }
+        )
+      );
+    }
+
+    await Promise.all(batch);
+
+    // -----------------------------
+    // MARCAR SALA COMO INICIADA
+    // -----------------------------
     await setDoc(
       salaRef,
       {
@@ -253,6 +364,7 @@ export async function handler(event) {
 
     return apiResponse(true, "El juego ha iniciado correctamente");
   }
+
 
 
   // -----------------------------
