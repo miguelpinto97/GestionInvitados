@@ -290,6 +290,7 @@ export async function handler(event) {
         [array[i], array[j]] = [array[j], array[i]];
       }
     };
+    const usuariosOriginales = [...usuariosValidos];
 
     shuffle(usuariosValidos);
 
@@ -366,7 +367,7 @@ export async function handler(event) {
         setDoc(
           doc(db, "salas", codigo, "usuarios", userId),
           {
-            nickname: usuariosValidos.find(u => u.id === userId)?.nickname,
+            nickname: usuariosOriginales.find(u => u.id === userId)?.nickname,
             rol: asignaciones[userId].rol,
             equipo: asignaciones[userId].equipo
           },
