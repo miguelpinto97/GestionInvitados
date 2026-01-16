@@ -8,6 +8,7 @@ import {
   setDoc,
   deleteDoc
 } from "firebase/firestore";
+import admin from "firebase-admin";
 
 import { randomUUID } from "crypto";
 
@@ -47,6 +48,24 @@ function apiResponse(ok, mensaje, data = null) {
       data
     })
   };
+}
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    databaseURL: "https://ladecisiondelheroe-default-rtdb.europe-west1.firebasedatabase.app/"
+  });
+}
+
+const rtdbAdmin = admin.database();
+
+async function contarUsuariosRealtime(codigoSala) {
+  const ref = rtdbAdmin.ref(`presencia/salas/${codigoSala}`);
+  const snapshot = await ref.once("value");
+
+  if (!snapshot.exists()) return 0;
+
+  return snapshot.numChildren();
 }
 
 
@@ -96,7 +115,6 @@ export async function handler(event) {
     });
   }
 
-
   // -----------------------------
   // UNIRSE A SALA
   // -----------------------------
@@ -130,7 +148,6 @@ export async function handler(event) {
     });
   }
 
-
   // -----------------------------
   // LISTAR USUARIOS
   // -----------------------------
@@ -159,6 +176,10 @@ export async function handler(event) {
       body: JSON.stringify(usuarios)
     };
   }
+
+  // -----------------------------
+  // VALIDAR SALA
+  // -----------------------------
   if (accion === "validar") {
     const { codigo } = data;
 
@@ -184,8 +205,6 @@ export async function handler(event) {
 
     return apiResponse(true, "Sala disponible");
   }
-
-
 
   // -----------------------------
   // SALIR DE SALA
@@ -238,15 +257,28 @@ export async function handler(event) {
       return apiResponse(false, "La sala debe ser iniciada por el host");
     }
 
+    // 🧠 VALIDACIÓN REALTIME (mínimo 3 jugadores)
+    const cantidadUsuarios = await contarUsuariosRealtime(codigo);
+
+    if (cantidadUsuarios < 3) {
+      return apiResponse(
+        false,
+        `Se requieren al menos 3 jugadores conectados`
+      );
+    }
+
+    // ✅ Todo correcto → iniciar juego
     await setDoc(
       salaRef,
-      { iniciada: true, iniciadaAt: new Date() },
+      {
+        iniciada: true,
+        iniciadaAt: new Date()
+      },
       { merge: true }
     );
 
     return apiResponse(true, "El juego ha iniciado correctamente");
   }
-
 
 
   // -----------------------------
