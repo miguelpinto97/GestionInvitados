@@ -12,25 +12,43 @@ import {
 import { randomUUID } from "crypto";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDdljWjfJnpnEN4JGA8IXDIYa1IUyJ71LU",
-    authDomain: "ladecisiondelheroe.firebaseapp.com",
-    projectId: "ladecisiondelheroe",
-    storageBucket: "ladecisiondelheroe.firebasestorage.app",
-    messagingSenderId: "667836434780",
-    appId: "1:667836434780:web:012b3afd8bcd09c5b31999",
-    measurementId: "G-GHRYFMQWDB"
+  apiKey: "AIzaSyDdljWjfJnpnEN4JGA8IXDIYa1IUyJ71LU",
+  authDomain: "ladecisiondelheroe.firebaseapp.com",
+  projectId: "ladecisiondelheroe",
+  storageBucket: "ladecisiondelheroe.firebasestorage.app",
+  messagingSenderId: "667836434780",
+  appId: "1:667836434780:web:012b3afd8bcd09c5b31999",
+  measurementId: "G-GHRYFMQWDB"
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 function generarCodigo() {
-    return Math.floor(10000000 + Math.random() * 90000000).toString();
+  return Math.floor(10000000 + Math.random() * 90000000).toString();
 }
+function generarSecreto() {
+  return randomUUID();
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
 };
+
+
+function apiResponse(ok, mensaje, data = null) {
+  return {
+    statusCode: 200,
+    headers: corsHeaders,
+    body: JSON.stringify({
+      ok,
+      mensaje,
+      data
+    })
+  };
+}
+
 
 export async function handler(event) {
 
@@ -63,17 +81,21 @@ export async function handler(event) {
       existe = snap.exists();
     }
 
+    const secreto = generarSecreto();
+
     await setDoc(doc(db, "salas", codigo), {
       activa: true,
+      iniciada: false,
+      secreto,
       createdAt: new Date(),
     });
 
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ codigo }),
-    };
+    return apiResponse(true, "Sala creada correctamente", {
+      codigo,
+      secreto
+    });
   }
+
 
   // -----------------------------
   // UNIRSE A SALA
@@ -82,22 +104,18 @@ export async function handler(event) {
     const { codigo, nickname } = data;
 
     if (!codigo || !nickname) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: "Datos incompletos"
-      };
+      return apiResponse(false, "Datos incompletos");
     }
 
     const salaRef = doc(db, "salas", codigo);
     const salaSnap = await getDoc(salaRef);
 
     if (!salaSnap.exists() || !salaSnap.data().activa) {
-      return {
-        statusCode: 404,
-        headers: corsHeaders,
-        body: "Sala no válida"
-      };
+      return apiResponse(false, "Sala no válida");
+    }
+
+    if (salaSnap.data().iniciada) {
+      return apiResponse(false, "El juego ya ha iniciado");
     }
 
     const userId = randomUUID();
@@ -107,12 +125,11 @@ export async function handler(event) {
       joinedAt: new Date(),
     });
 
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ userId }),
-    };
+    return apiResponse(true, "Usuario unido a la sala", {
+      userId
+    });
   }
+
 
   // -----------------------------
   // LISTAR USUARIOS
@@ -142,81 +159,99 @@ export async function handler(event) {
       body: JSON.stringify(usuarios)
     };
   }
-if (accion === "validar") {
-  const { codigo } = data;
+  if (accion === "validar") {
+    const { codigo } = data;
 
-  if (!codigo) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: "Código requerido"
-    };
+    if (!codigo) {
+      return apiResponse(false, "Código requerido");
+    }
+
+    const salaSnap = await getDoc(doc(db, "salas", codigo));
+
+    if (!salaSnap.exists()) {
+      return apiResponse(false, "La sala no existe");
+    }
+
+    const sala = salaSnap.data();
+
+    if (!sala.activa) {
+      return apiResponse(false, "La sala ya no está activa");
+    }
+
+    if (sala.iniciada) {
+      return apiResponse(false, "El juego ya ha iniciado");
+    }
+
+    return apiResponse(true, "Sala disponible");
   }
 
-  const salaRef = doc(db, "salas", codigo);
-  const salaSnap = await getDoc(salaRef);
 
-  if (!salaSnap.exists()) {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ valida: false })
-    };
+
+  // -----------------------------
+  // SALIR DE SALA
+  // -----------------------------
+  if (accion === "salir") {
+    const { codigo, userId } = data;
+
+    if (!codigo || !userId) {
+      return apiResponse(false, "Datos incompletos");
+    }
+
+    const userRef = doc(db, "salas", codigo, "usuarios", userId);
+    const snap = await getDoc(userRef);
+
+    if (snap.exists()) {
+      await deleteDoc(userRef);
+    }
+
+    return apiResponse(true, "Usuario eliminado de la sala");
   }
 
-  const sala = salaSnap.data();
+  // -----------------------------
+  // INICIAR JUEGO
+  // -----------------------------
+  if (accion === "iniciar") {
+    const { codigo, secreto } = data;
 
-  if (!sala.activa) {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ valida: false })
-    };
+    if (!codigo || !secreto) {
+      return apiResponse(false, "Código y secreto son requeridos");
+    }
+
+    const salaRef = doc(db, "salas", codigo);
+    const salaSnap = await getDoc(salaRef);
+
+    if (!salaSnap.exists()) {
+      return apiResponse(false, "La sala no existe");
+    }
+
+    const sala = salaSnap.data();
+
+    if (!sala.activa) {
+      return apiResponse(false, "La sala no está activa");
+    }
+
+    if (sala.iniciada) {
+      return apiResponse(false, "El juego ya fue iniciado");
+    }
+
+    if (sala.secreto !== secreto) {
+      return apiResponse(false, "La sala debe ser iniciada por el host");
+    }
+
+    await setDoc(
+      salaRef,
+      { iniciada: true, iniciadaAt: new Date() },
+      { merge: true }
+    );
+
+    return apiResponse(true, "El juego ha iniciado correctamente");
   }
 
-  return {
-    statusCode: 200,
-    headers: corsHeaders,
-    body: JSON.stringify({ valida: true })
-  };
-}
-
-// -----------------------------
-// SALIR DE SALA
-// -----------------------------
-if (accion === "salir") {
-  const { codigo, userId } = data;
-
-  if (!codigo || !userId) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: "Datos incompletos"
-    };
-  }
-
-  const userRef = doc(db, "salas", codigo, "usuarios", userId);
-  const snap = await getDoc(userRef);
-
-  // Si no existe, no pasa nada (idempotente)
-  if (snap.exists()) {
-    await deleteDoc(userRef);
-  }
-
-  return {
-    statusCode: 200,
-    headers: corsHeaders,
-    body: JSON.stringify({ ok: true })
-  };
-}
 
 
   // -----------------------------
   // ACCIÓN NO SOPORTADA
   // -----------------------------
-  return {
-    statusCode: 404,
-    headers: corsHeaders,
-    body: "Acción no soportada",
-  };
+  return apiResponse(false, "Acción no soportada");
+
 }
