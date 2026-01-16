@@ -215,10 +215,14 @@ export async function handler(event) {
   // INICIAR JUEGO
   // -----------------------------
   if (accion === "iniciar") {
-    const { codigo, secreto } = data;
+    const { codigo, secreto, usuarios } = data;
 
     if (!codigo || !secreto) {
       return apiResponse(false, "Código y secreto son requeridos");
+    }
+
+    if (!Array.isArray(usuarios) || usuarios.length < 3) {
+      return apiResponse(false, "Se requieren al menos 3 usuarios válidos");
     }
 
     const salaRef = doc(db, "salas", codigo);
@@ -243,17 +247,29 @@ export async function handler(event) {
     }
 
     // -----------------------------
-    // OBTENER JUGADORES
+    // SINCRONIZAR USUARIOS
     // -----------------------------
-    const usersSnap = await getDocs(collection(db, "salas", codigo, "usuarios"));
+    const usuariosValidosIds = usuarios.map(u => u.Id);
 
-    if (usersSnap.size < 3) {
-      return apiResponse(false, "Se requieren al menos 3 jugadores");
-    }
+    const usersRef = collection(db, "salas", codigo, "usuarios");
+    const usersSnap = await getDocs(usersRef);
 
-    const jugadores = usersSnap.docs.map(d => ({
-      id: d.id,
-      ...d.data()
+    const deletes = [];
+
+    usersSnap.forEach(docSnap => {
+      if (!usuariosValidosIds.includes(docSnap.id)) {
+        deletes.push(deleteDoc(docSnap.ref));
+      }
+    });
+
+    await Promise.all(deletes);
+
+    // -----------------------------
+    // USAR SOLO USUARIOS VALIDOS
+    // -----------------------------
+    const jugadores = usuarios.map(u => ({
+      id: u.Id,
+      nickname: u.Nickname
     }));
 
     // -----------------------------
@@ -275,7 +291,7 @@ export async function handler(event) {
 
     const asignaciones = {
       [juez.id]: {
-        rol: "rol_0001", // Juez
+        rol: "rol_0001",
         equipo: 0
       }
     };
@@ -286,15 +302,11 @@ export async function handler(event) {
     const equipo1 = [];
     const equipo2 = [];
 
-    jugadores.forEach((j, index) => {
-      (index % 2 === 0 ? equipo1 : equipo2).push(j);
+    jugadores.forEach((j, i) => {
+      (i % 2 === 0 ? equipo1 : equipo2).push(j);
     });
 
-    // -----------------------------
-    // ROLES DISPONIBLES (SIN JUEZ)
-    // -----------------------------
     const ROLES_DISPONIBLES = [
-      "rol_0002", // Abogado
       "rol_0003",
       "rol_0004",
       "rol_0005",
@@ -307,14 +319,12 @@ export async function handler(event) {
     const asignarEquipo = (equipo, numeroEquipo) => {
       shuffle(equipo);
 
-      // Abogado
       const abogado = equipo.shift();
       asignaciones[abogado.id] = {
         rol: "rol_0002",
         equipo: numeroEquipo
       };
 
-      // Resto de jugadores
       equipo.forEach(j => {
         const rolRandom =
           ROLES_DISPONIBLES[Math.floor(Math.random() * ROLES_DISPONIBLES.length)];
@@ -330,15 +340,14 @@ export async function handler(event) {
     asignarEquipo(equipo2, 2);
 
     // -----------------------------
-    // GUARDAR EN FIRESTORE
+    // GUARDAR ROLES Y EQUIPOS
     // -----------------------------
-    const batch = [];
+    const writes = [];
 
     for (const userId in asignaciones) {
-      const ref = doc(db, "salas", codigo, "usuarios", userId);
-      batch.push(
+      writes.push(
         setDoc(
-          ref,
+          doc(db, "salas", codigo, "usuarios", userId),
           {
             rol: asignaciones[userId].rol,
             equipo: asignaciones[userId].equipo
@@ -348,10 +357,10 @@ export async function handler(event) {
       );
     }
 
-    await Promise.all(batch);
+    await Promise.all(writes);
 
     // -----------------------------
-    // MARCAR SALA COMO INICIADA
+    // INICIAR SALA
     // -----------------------------
     await setDoc(
       salaRef,
@@ -364,6 +373,7 @@ export async function handler(event) {
 
     return apiResponse(true, "El juego ha iniciado correctamente");
   }
+
 
 
 
